@@ -17,8 +17,10 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "google-it": "^1.6.4",
     "helmet": "^8.1.0",
-    "morgan": "^1.10.1"
+    "morgan": "^1.10.1",
+    "p-limit": "^7.3.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
