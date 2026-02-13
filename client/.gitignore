@@ -1,0 +1,33 @@
+# Dependências do Node (Front e Back)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Variáveis de Ambiente e Segredos (CRÍTICO: Nunca suba isso)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# Build do Front-end
+client/dist/
+client/build/
+
+# Logs e arquivos de sistema
+.DS_Store
+Thumbs.db
+logs/
+*.log
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Coverage de testes
+coverage/
