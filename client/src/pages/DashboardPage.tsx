@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { 
   Loader2, Sparkles, AlertCircle, 
-  Globe, ShieldAlert, Users, Send, Target, TrendingUp 
+  Globe, ShieldAlert, Users, Send, Target, TrendingUp, Layout
 } from 'lucide-react';
 
 import { searchLeads } from '../features/search/services/searchService';
@@ -66,9 +66,18 @@ export default function DashboardPage() {
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center font-bold text-white shadow-lg">P</div>
             <span className="font-bold text-xl tracking-tight">Prospector AI</span>
           </div>
+          
           <div className="flex items-center gap-4">
-            <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 uppercase">Sistema Online</span>
-            <div className="text-xs font-mono text-slate-500">v1.2</div>
+            {/* BOTÃO DO CRM ADICIONADO AQUI */}
+            <Link 
+              to="/crm" 
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all border border-slate-700 hover:border-primary shadow-lg"
+            >
+              <Layout className="w-4 h-4 text-primary" /> Meu CRM
+            </Link>
+            
+            <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 uppercase hidden sm:inline-block">Sistema Online</span>
+            <div className="text-xs font-mono text-slate-500 hidden sm:block">v1.2</div>
           </div>
         </div>
       </header>
