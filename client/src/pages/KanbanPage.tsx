@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCRMLeads, updateLeadStatus } from '../features/crm/services/crmService';
-import { Star, Send, Handshake, Trophy, MapPin } from 'lucide-react';
+import { Star, Send, Handshake, Trophy, MapPin, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom'; // Import do Link para navegação
 
 const COLUMNS = [
   { id: 'SAVED', title: 'Leads Salvos', icon: <Star className="w-4 h-4 text-amber-400" />, border: 'border-amber-500/30' },
@@ -40,51 +41,71 @@ export default function KanbanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-black italic uppercase mb-2 tracking-tighter">Meu Funil de Vendas</h1>
-        <p className="text-sm text-slate-400 mb-8 font-medium">Arraste os cards para a direita para avançar a negociação.</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {COLUMNS.map(col => (
-            <div 
-              key={col.id} 
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, col.id)}
-              className={`bg-surface/50 border ${col.border} rounded-3xl p-4 flex flex-col h-[70vh] shadow-xl`}
-            >
-              <div className="flex items-center gap-2 mb-4 pb-4 border-b border-slate-700/50">
-                {col.icon}
-                <h2 className="text-sm font-black uppercase tracking-widest text-slate-300">{col.title}</h2>
-                <span className="ml-auto text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded-lg">
-                  {leads.filter((l: any) => l.crmStatus === col.id).length}
-                </span>
-              </div>
-
-              <div className="flex-1 overflow-y-auto space-y-3 scrollbar-hide pr-1">
-                {leads.filter((l: any) => l.crmStatus === col.id).map((lead: any) => (
-                  <div 
-                    key={lead.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, lead.id)}
-                    className="bg-slate-800 border border-slate-700 p-4 rounded-2xl cursor-grab active:cursor-grabbing hover:border-primary transition-all shadow-lg group"
-                  >
-                    <h3 className="text-sm font-bold text-white mb-1">{lead.displayName.text}</h3>
-                    <div className="flex items-center text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-3">
-                      <MapPin className="w-3 h-3 mr-1" /> {lead.formattedAddress.split(',')[0]}
-                    </div>
-                    {lead.notes && (
-                       <p className="text-xs text-slate-300 italic border-l-2 border-primary pl-2 mb-2 line-clamp-2">
-                         "{lead.notes}"
-                       </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+    <div className="min-h-screen bg-background text-slate-100 font-sans selection:bg-primary selection:text-white">
+      
+      {/* NOVO: Header (Cabeçalho) com o Botão de Voltar */}
+      <header className="border-b border-slate-800 bg-surface/80 backdrop-blur-md sticky top-0 z-50 px-4 h-20 flex items-center justify-between">
+        <Link 
+          to="/" 
+          className="flex items-center text-slate-400 hover:text-white transition-all font-black uppercase text-[10px] tracking-[0.3em] group"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> 
+          Voltar para Mineração
+        </Link>
+        
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center font-bold text-white shadow-lg text-xs">P</div>
+          <span className="text-[10px] font-black tracking-[0.4em] text-slate-500 uppercase italic hidden sm:block">Prospector CRM v1.0</span>
         </div>
-      </div>
+      </header>
+
+      {/* Conteúdo Principal do Kanban */}
+      <main className="p-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl font-black italic uppercase mb-2 tracking-tighter">Meu Funil de Vendas</h1>
+          <p className="text-sm text-slate-400 mb-8 font-medium">Arraste os cards para a direita para avançar a negociação.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {COLUMNS.map(col => (
+              <div 
+                key={col.id} 
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, col.id)}
+                className={`bg-surface/50 border ${col.border} rounded-3xl p-4 flex flex-col h-[70vh] shadow-xl`}
+              >
+                <div className="flex items-center gap-2 mb-4 pb-4 border-b border-slate-700/50">
+                  {col.icon}
+                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-300">{col.title}</h2>
+                  <span className="ml-auto text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded-lg">
+                    {leads.filter((l: any) => l.crmStatus === col.id).length}
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-3 scrollbar-hide pr-1">
+                  {leads.filter((l: any) => l.crmStatus === col.id).map((lead: any) => (
+                    <div 
+                      key={lead.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, lead.id)}
+                      className="bg-slate-800 border border-slate-700 p-4 rounded-2xl cursor-grab active:cursor-grabbing hover:border-primary transition-all shadow-lg group"
+                    >
+                      <h3 className="text-sm font-bold text-white mb-1">{lead.displayName.text}</h3>
+                      <div className="flex items-center text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-3">
+                        <MapPin className="w-3 h-3 mr-1" /> {lead.formattedAddress.split(',')[0]}
+                      </div>
+                      {lead.notes && (
+                         <p className="text-xs text-slate-300 italic border-l-2 border-primary pl-2 mb-2 line-clamp-2">
+                           "{lead.notes}"
+                         </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
