@@ -13,26 +13,21 @@ export default function LeadDetailsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Recupera o lead do estado da rota
   const lead = location.state?.lead as Lead;
   
-  // Estados para Modal, CRM e Notas
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [notes, setNotes] = useState(lead?.notes || '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
-  // Estados para busca de Redes Sociais sob demanda (Correção de Performance)
   const [socialLinks, setSocialLinks] = useState(lead?.analysis?.socialLinks || []);
   const [loadingSocials, setLoadingSocials] = useState(false);
 
-  // Efeito para buscar redes sociais apenas ao entrar na página se elas não existirem no cache
   useEffect(() => {
     if (lead && (!socialLinks || socialLinks.length === 0)) {
       const loadSocials = async () => {
         setLoadingSocials(true);
         try {
-          // Busca no Google/DuckDuckGo apenas para este lead específico
           const data = await fetchLeadSocials(lead.id, lead.displayName.text, lead.formattedAddress);
           setSocialLinks(data);
         } catch (error) {
@@ -45,7 +40,6 @@ export default function LeadDetailsPage() {
     }
   }, [lead, socialLinks.length]);
 
-  // Fallback para sessão expirada
   if (!lead) return (
     <div className="min-h-screen bg-background flex items-center justify-center text-slate-400 font-black uppercase tracking-widest">
       Sessão Expirada ou Lead Inválido
@@ -56,7 +50,6 @@ export default function LeadDetailsPage() {
   const analysisData: any = analysis;
   const ds = analysisData?.aiData?.designStrategy;
   
-  // Cores dinâmicas
   const pColor = ds?.primaryColor || '#3B82F6';
   const sColor = ds?.secondaryColor || '#6366F1';
 
@@ -92,7 +85,6 @@ export default function LeadDetailsPage() {
 
   return (
     <div className="min-h-screen bg-background text-slate-200 pb-20 font-sans selection:bg-primary selection:text-white">
-      {/* HEADER */}
       <header className="border-b border-slate-800 bg-surface/80 backdrop-blur-md sticky top-0 z-50 px-4 h-20 flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="flex items-center text-slate-400 hover:text-white transition-all font-black uppercase text-[10px] tracking-[0.3em] group">
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Voltar
@@ -107,7 +99,6 @@ export default function LeadDetailsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           
           <div className="lg:col-span-2 space-y-10">
-            {/* HERO CARD */}
             <div className="bg-surface border border-slate-700/50 rounded-[3rem] p-10 shadow-3xl relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[120px] pointer-events-none" style={{ backgroundColor: pColor }}></div>
                
@@ -132,7 +123,6 @@ export default function LeadDetailsPage() {
                </div>
             </div>
 
-            {/* HISTÓRICO DE CONTATO */}
             <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <MessageSquare className="w-6 h-6 text-primary" />
@@ -142,7 +132,7 @@ export default function LeadDetailsPage() {
                 <textarea 
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Registre aqui as interações com o lead..."
+                  placeholder="Registre as interações (ex: Liguei e falei com o proprietário, retorno agendado para terça)..."
                   className="w-full bg-background border border-slate-700 rounded-2xl p-6 text-slate-300 outline-none focus:ring-2 focus:ring-primary min-h-[150px] transition-all resize-none shadow-inner"
                 />
                 <button 
@@ -155,7 +145,6 @@ export default function LeadDetailsPage() {
               </div>
             </section>
 
-            {/* BRANDING IA */}
             <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl">
               <div className="flex items-center gap-4 mb-12 border-b border-slate-800 pb-8">
                 <div className="p-4 bg-primary/10 rounded-2xl" style={{ backgroundColor: `${pColor}15` }}>
@@ -163,7 +152,7 @@ export default function LeadDetailsPage() {
                 </div>
                 <div>
                   <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Manual Visual Sugerido</h2>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Design Intelligence</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Design Advisory Report</p>
                 </div>
               </div>
 
@@ -197,8 +186,8 @@ export default function LeadDetailsPage() {
                 <div className="space-y-6">
                    <div className="p-6 bg-background/40 rounded-[2rem] border border-slate-800">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Estilo: <span className="text-white ml-2 italic uppercase">{ds?.style || 'Contemporâneo'}</span></p>
-                      <p className="text-sm text-slate-300 italic leading-relaxed mb-6">
-                        "{ds?.designReasoning || 'Escolha visual focada em elevar o valor percebido da marca no mercado digital.'}"
+                      <p className="text-sm text-slate-300 italic font-medium leading-relaxed mb-6">
+                        "{ds?.designReasoning || 'Escolha visual focada em elevar o valor percebido da marca no ambiente digital.'}"
                       </p>
                       {ds?.referenceSite && (
                         <a href={ds.referenceSite} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all text-primary">
@@ -211,9 +200,7 @@ export default function LeadDetailsPage() {
             </section>
           </div>
 
-          {/* SIDEBAR */}
           <div className="space-y-6">
-            
             <button 
               onClick={handleSaveToCRM}
               disabled={isSaved}
@@ -235,19 +222,18 @@ export default function LeadDetailsPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-primary/10 rounded-xl text-primary"><Phone className="w-5 h-5" /></div>
-                  <span className="text-sm font-bold">{lead.internationalPhoneNumber || 'Privado/Não informado'}</span>
+                  <span className="text-sm font-bold">{lead.internationalPhoneNumber || 'Não informado'}</span>
                 </div>
                 {analysisData?.emails?.length > 0 && (
                   <div className="flex items-start gap-4">
                     <div className="p-3 bg-primary/10 rounded-xl text-primary"><Mail className="w-5 h-5" /></div>
                     <div className="space-y-1">
-                      {analysisData.emails.map((e: string) => <span key={e} className="block text-xs font-mono text-blue-300 select-all">{e}</span>)}
+                      {analysisData.emails.map((e: string) => <span key={e} className="block text-xs font-mono text-blue-300 select-all font-bold">{e}</span>)}
                     </div>
                   </div>
                 )}
               </div>
               
-              {/* REDES SOCIAIS COM CARREGAMENTO ON-DEMAND */}
               <div className="flex justify-center flex-wrap gap-4 mt-10 pt-6 border-t border-slate-800">
                 {loadingSocials ? (
                   <div className="flex flex-col items-center gap-2 animate-pulse">
@@ -262,7 +248,7 @@ export default function LeadDetailsPage() {
                     </a>
                   ))
                 ) : (
-                  <span className="text-[10px] text-slate-600 italic">Redes Sociais não encontradas</span>
+                  <span className="text-[10px] text-slate-600 italic">Redes Sociais não mapeadas</span>
                 )}
               </div>
             </div>
