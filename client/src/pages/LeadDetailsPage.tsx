@@ -1,11 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, Globe, MapPin, Phone, Star, ShieldAlert, 
-  Smartphone, Mail, Share2, Facebook, Instagram, 
-  ExternalLink, AlertCircle, TrendingUp, Sparkles, Palette, Type 
+  ArrowLeft, MapPin, Phone, Mail, Share2, Facebook, Instagram, 
+  ExternalLink, AlertCircle, Sparkles, Palette, Type 
 } from 'lucide-react';
 import { type Lead } from '../features/search/services/searchService';
-import { Badge } from '../components/ui/Badge';
 import { ProposalModal } from '../features/leads/components/ProposalModal';
 import { useState } from 'react';
 
@@ -25,7 +23,10 @@ export default function LeadDetailsPage() {
   );
 
   const { analysis } = lead;
-  const ds = analysis?.aiData?.designStrategy;
+  
+  // CORREÇÃO TS: Ignorando a tipagem estrita para acessar a IA
+  const analysisData: any = analysis;
+  const ds = analysisData?.aiData?.designStrategy;
   const pColor = ds?.primaryColor || '#3B82F6';
   const sColor = ds?.secondaryColor || '#6366F1';
 
@@ -45,7 +46,6 @@ export default function LeadDetailsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           
           <div className="lg:col-span-2 space-y-10">
-            {/* HERO CARD & DIAGNÓSTICO DE DOR */}
             <div className="bg-surface border border-slate-700/50 rounded-[3rem] p-10 shadow-3xl relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2" style={{ backgroundColor: pColor }}></div>
                
@@ -63,12 +63,11 @@ export default function LeadDetailsPage() {
                     <span className="text-[12px] font-black text-red-500 uppercase tracking-[0.3em]">Diagnóstico de Perda de Lucro</span>
                   </div>
                   <p className="text-xl text-slate-100 font-medium italic leading-relaxed">
-                    {analysis?.aiData?.mainPainPoint ? `"${analysis.aiData.mainPainPoint}"` : "Analisando falhas de conversão no site atual..."}
+                    {analysisData?.aiData?.mainPainPoint ? `"${analysisData.aiData.mainPainPoint}"` : "Analisando falhas de conversão no site atual..."}
                   </p>
                </div>
             </div>
 
-            {/* BRANDING & DESIGN STRATEGY */}
             <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl">
               <div className="flex items-center gap-4 mb-12 border-b border-slate-800 pb-8">
                 <div className="p-4 bg-primary/10 rounded-2xl" style={{ backgroundColor: `${pColor}15` }}>
@@ -82,7 +81,6 @@ export default function LeadDetailsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="space-y-10">
-                  {/* PALETA DE CORES */}
                   <div className="flex items-end gap-6">
                     <div className="space-y-3">
                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Base</p>
@@ -96,7 +94,6 @@ export default function LeadDetailsPage() {
                     </div>
                   </div>
 
-                  {/* TIPOGRAFIA */}
                   <div className="grid grid-cols-2 gap-4">
                      <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50">
                         <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Títulos</span></div>
@@ -129,7 +126,6 @@ export default function LeadDetailsPage() {
             </section>
           </div>
 
-          {/* SIDEBAR DE CONTATO E AÇÃO */}
           <div className="space-y-8">
             <button 
               onClick={() => setIsModalOpen(true)}
@@ -149,15 +145,15 @@ export default function LeadDetailsPage() {
                 <ContactRow 
                   icon={<Mail />} 
                   label="E-mails Minerados" 
-                  value={analysis?.emails || []} 
+                  value={analysisData?.emails || []} 
                   isList 
                 />
               </ul>
             </div>
 
-            {analysis?.socialLinks && analysis.socialLinks.length > 0 && (
+            {analysisData?.socialLinks && analysisData.socialLinks.length > 0 && (
                <div className="flex justify-center gap-4 p-4 bg-slate-900/40 rounded-[2rem] border border-slate-800">
-                  {analysis.socialLinks.map((s, i) => (
+                  {analysisData.socialLinks.map((s: any, i: number) => (
                     <a key={i} href={s.url} target="_blank" className="p-4 bg-surface border border-slate-700 rounded-2xl hover:border-primary transition-all">
                       {getSocialIcon(s.network)}
                     </a>
@@ -173,7 +169,6 @@ export default function LeadDetailsPage() {
   );
 }
 
-// COMPONENTES AUXILIARES
 function DetailRow({ label, value }: any) {
   return (
     <div className="flex justify-between items-center py-2">

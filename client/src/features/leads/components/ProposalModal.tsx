@@ -14,22 +14,20 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
   if (!isOpen) return null;
 
   const { analysis } = lead;
+  
+  // CORREÇÃO TS: Dizendo ao TypeScript para ignorar a validação estrita neste ponto
+  const analysisData: any = analysis;
 
-  // LÓGICA DE COPYWRITING INTELIGENTE (IA + DIAGNÓSTICO TÉCNICO)
   const generateCopy = () => {
-    // Extraindo dados da IA (caso existam)
-    const ai = analysis.aiData;
+    const ai = analysisData?.aiData;
     const owner = ai?.ownerName || 'Responsável';
     const item = ai?.featuredItem || 'excelente trabalho';
     const aiPain = ai?.mainPainPoint;
 
-    // 1. Saudação Personalizada
     const greeting = `Olá, ${owner}! Tudo bem?`;
 
-    // 2. Quebra de gelo com Prova Social e Item em Destaque (IA)
     const intro = `Vi o perfil da ${lead.displayName.text} no Google e notei que vocês são referência na região, especialmente pelo trabalho com ${item} (vi as ${lead.userRatingCount} avaliações positivas!).`;
     
-    // 3. Identificação da Dor (Prioriza a IA, depois o técnico)
     let painPoint = "";
     
     if (aiPain) {
@@ -44,7 +42,6 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
       painPoint = "Notei que seu site já tem uma estrutura base, mas sinto que podemos modernizar a conversão para transformar mais visitantes em clientes reais através de um design focado em resultados.";
     }
 
-    // 4. Proposta de Valor e Chamada para Ação
     const solution = `Eu ajudo negócios como o seu a profissionalizarem essa presença digital. Criei um modelo de como podemos otimizar o site da ${lead.displayName.text} para que ele venda tanto quanto a sua operação física.`;
     const cta = `Podemos conversar 5 minutos para eu te mostrar como aplicar isso?`;
 
@@ -61,7 +58,6 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-all">
       <div className="bg-surface border border-slate-700 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
         
-        {/* Header com indicador de IA */}
         <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/20 rounded-xl">
@@ -69,7 +65,7 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
             </div>
             <div>
               <h2 className="text-xl font-black text-white leading-none">Proposta Inteligente</h2>
-              {analysis.aiData && (
+              {analysisData?.aiData && (
                 <div className="flex items-center gap-1 mt-1">
                   <Sparkles className="w-3 h-3 text-amber-400" />
                   <span className="text-[10px] uppercase font-bold text-amber-400 tracking-widest">Enriquecido com IA Real</span>
@@ -77,21 +73,17 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
               )}
             </div>
           </div>
-          <button 
-            onClick={onClose} 
-            className="p-2 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-all"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-all">
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-8">
           <div className="flex justify-between items-center mb-4">
             <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Script de Abordagem Personalizado</p>
-            {analysis.aiData?.ownerName && (
+            {analysisData?.aiData?.ownerName && (
               <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-bold">
-                Dono(a) identificado: {analysis.aiData.ownerName}
+                Dono(a) identificado: {analysisData.aiData.ownerName}
               </span>
             )}
           </div>
@@ -110,10 +102,7 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
           </div>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button 
-              onClick={copyToClipboard}
-              className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl transition-all border border-slate-600 active:scale-95"
-            >
+            <button onClick={copyToClipboard} className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl transition-all border border-slate-600 active:scale-95">
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               {copied ? 'Copiado para o Clipboard' : 'Copiar Script'}
             </button>
@@ -123,8 +112,7 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
               rel="noreferrer"
               className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
             >
-              <Send className="w-4 h-4" /> 
-              Enviar no WhatsApp
+              <Send className="w-4 h-4" /> Enviar no WhatsApp
             </a>
           </div>
         </div>

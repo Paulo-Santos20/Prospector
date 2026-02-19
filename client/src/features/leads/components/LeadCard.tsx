@@ -1,14 +1,14 @@
-import { Globe, MapPin, Phone, ShieldAlert, Smartphone, Calendar, Mail, ExternalLink } from "lucide-react";
+import { Globe, MapPin, ShieldAlert, Smartphone, ExternalLink } from "lucide-react";
 import { type Lead } from "../../search/services/searchService";
 import { Badge } from "../../../components/ui/Badge";
-import { useNavigate } from "react-router-dom"; // Importar hook de navegação
+import { useNavigate } from "react-router-dom";
 
 interface LeadCardProps {
   lead: Lead;
 }
 
 export const LeadCard = ({ lead }: LeadCardProps) => {
-  const navigate = useNavigate(); // Hook para navegar
+  const navigate = useNavigate();
   const { analysis } = lead;
   
   const getStatusColor = () => {
@@ -24,7 +24,6 @@ export const LeadCard = ({ lead }: LeadCardProps) => {
     return 'Site Moderno';
   };
 
-  // Função que executa a navegação levando os dados junto (state)
   const handleCardClick = () => {
     navigate(`/lead/${lead.id}`, { state: { lead } });
   };
@@ -34,12 +33,10 @@ export const LeadCard = ({ lead }: LeadCardProps) => {
       onClick={handleCardClick}
       className="bg-surface border border-slate-700 rounded-lg p-5 hover:border-primary cursor-pointer transition-all hover:scale-[1.02] group shadow-lg h-full flex flex-col relative"
     >
-      {/* Indicador visual de clique */}
       <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
         <ExternalLink className="w-4 h-4 text-primary" />
       </div>
 
-      {/* Cabeçalho */}
       <div className="flex justify-between items-start mb-4 pr-6">
         <div>
           <h3 className="text-lg font-semibold text-white group-hover:text-primary transition-colors line-clamp-1">
@@ -56,7 +53,6 @@ export const LeadCard = ({ lead }: LeadCardProps) => {
         <Badge variant={getStatusColor()}>{getStatusLabel()}</Badge>
       </div>
 
-      {/* Métricas Resumidas */}
       <div className="space-y-2 mb-4 bg-background/50 p-3 rounded-md flex-grow">
         {analysis.status === 'NO_WEBSITE' ? (
            <p className="text-sm text-red-400 flex items-center font-medium">

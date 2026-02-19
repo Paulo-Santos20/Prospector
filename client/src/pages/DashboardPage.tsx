@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
   Search, MapPin, Loader2, Sparkles, AlertCircle, 
-  Filter, Globe, ShieldAlert, Smartphone, Users, Send, Target, TrendingUp 
+  Globe, ShieldAlert, Users, Send, Target, TrendingUp 
 } from 'lucide-react';
 
 import { searchLeads } from '../features/search/services/searchService';
@@ -20,11 +20,9 @@ export default function DashboardPage() {
   const [nicheInput, setNicheInput] = useState(nicheParam);
   const [locationInput, setLocationInput] = useState(locationParam);
 
-  // Busca de Estatísticas Globais (Simuladas via API)
   const { data: stats } = useQuery({
     queryKey: ['global-stats'],
     queryFn: async () => {
-      // Substitua pela sua rota real de estatísticas quando disponível
       const res = await axios.get('https://prospector-api-mngo.onrender.com/api/stats').catch(() => ({ 
         data: { totalLeads: 0, totalProposals: 0, rate: 12.5 } 
       }));
@@ -33,7 +31,7 @@ export default function DashboardPage() {
     refetchInterval: 30000,
   });
 
-  const { data, isLoading, error, isFetching } = useQuery({
+  const { data, isFetching } = useQuery({
     queryKey: ['leads', nicheParam, locationParam],
     queryFn: () => searchLeads(nicheParam, locationParam),
     enabled: !!nicheParam && !!locationParam,
@@ -77,14 +75,12 @@ export default function DashboardPage() {
 
       <main className="max-w-7xl mx-auto px-4 mt-8">
         
-        {/* 4. DASHBOARD DE CONVERSÃO (GAMIFICAÇÃO) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <StatCard icon={<Users />} label="Leads Minerados" value={stats?.totalLeads || 0} color="text-blue-400" />
           <StatCard icon={<Send />} label="Propostas Enviadas" value={stats?.totalProposals || 0} color="text-emerald-400" />
           <StatCard icon={<Target />} label="Taxa de Resposta" value={`${stats?.rate || 0}%`} color="text-amber-400" />
         </div>
 
-        {/* Banner de Progresso */}
         <div className="bg-gradient-to-r from-primary/10 to-transparent border border-primary/20 p-6 rounded-[2rem] mb-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <h2 className="text-lg font-black italic uppercase tracking-tighter flex items-center gap-2">
@@ -97,7 +93,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Busca */}
         <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-2xl mb-10 relative overflow-hidden">
            <h1 className="text-2xl font-black mb-6 flex items-center gap-2 italic uppercase">
              <Sparkles className="w-5 h-5 text-amber-400" /> Nova Mineração
@@ -119,7 +114,6 @@ export default function DashboardPage() {
            </form>
         </div>
 
-        {/* Filtros */}
         {data?.leads && (
           <div className="flex flex-wrap gap-3 mb-8">
             <FilterButton active={activeFilter === 'all'} onClick={() => setActiveFilter('all')} icon={<Globe />} label="Todos" count={data.leads.length} />
@@ -128,7 +122,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Grid de Leads */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredLeads.map(lead => <LeadCard key={lead.id} lead={lead} />)}
         </div>
