@@ -2,12 +2,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, MapPin, Phone, Mail, Share2, Facebook, Instagram, 
   ExternalLink, AlertCircle, Sparkles, Palette, Type, Star, 
-  UtensilsCrossed, Save, MessageSquare 
+  UtensilsCrossed, Save, MessageSquare, Loader2 
 } from 'lucide-react';
-import { type Lead } from '../features/search/services/searchService';
+import { type Lead, fetchLeadSocials } from '../features/search/services/searchService';
 import { ProposalModal } from '../features/leads/components/ProposalModal';
 import { saveLeadToCRM, updateLeadNotes } from '../features/crm/services/crmService';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function LeadDetailsPage() {
   const location = useLocation();
@@ -19,8 +19,31 @@ export default function LeadDetailsPage() {
   // Estados para Modal, CRM e Notas
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [notes, setNotes] = useState((lead as any)?.notes || '');
+  const [notes, setNotes] = useState(lead?.notes || '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+  // Estados para busca de Redes Sociais sob demanda (Correção de Performance)
+  const [socialLinks, setSocialLinks] = useState(lead?.analysis?.socialLinks || []);
+  const [loadingSocials, setLoadingSocials] = useState(false);
+
+  // Efeito para buscar redes sociais apenas ao entrar na página se elas não existirem no cache
+  useEffect(() => {
+    if (lead && (!socialLinks || socialLinks.length === 0)) {
+      const loadSocials = async () => {
+        setLoadingSocials(true);
+        try {
+          // Busca no Google/DuckDuckGo apenas para este lead específico
+          const data = await fetchLeadSocials(lead.id, lead.displayName.text, lead.formattedAddress);
+          setSocialLinks(data);
+        } catch (error) {
+          console.error("Erro ao carregar redes sociais", error);
+        } finally {
+          setLoadingSocials(false);
+        }
+      };
+      loadSocials();
+    }
+  }, [lead, socialLinks.length]);
 
   // Fallback para sessão expirada
   if (!lead) return (
@@ -33,11 +56,10 @@ export default function LeadDetailsPage() {
   const analysisData: any = analysis;
   const ds = analysisData?.aiData?.designStrategy;
   
-  // Definição de cores baseada na estratégia da IA
+  // Cores dinâmicas
   const pColor = ds?.primaryColor || '#3B82F6';
   const sColor = ds?.secondaryColor || '#6366F1';
 
-  // Função para salvar no CRM
   const handleSaveToCRM = async () => {
     try {
       await saveLeadToCRM(lead);
@@ -47,7 +69,6 @@ export default function LeadDetailsPage() {
     }
   };
 
-  // Função para salvar anotações de contato
   const handleSaveNotes = async () => {
     setIsSavingNotes(true);
     try {
@@ -60,7 +81,6 @@ export default function LeadDetailsPage() {
     }
   };
 
-  // Helper de ícones para redes sociais e marketplaces
   const getSocialIcon = (network: string) => {
     switch (network.toLowerCase()) {
       case 'facebook': return <Facebook className="w-5 h-5 text-[#1877F2]" />;
@@ -87,7 +107,7 @@ export default function LeadDetailsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           
           <div className="lg:col-span-2 space-y-10">
-            {/* HERO CARD & DIAGNÓSTICO */}
+            {/* HERO CARD */}
             <div className="bg-surface border border-slate-700/50 rounded-[3rem] p-10 shadow-3xl relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[120px] pointer-events-none" style={{ backgroundColor: pColor }}></div>
                
@@ -106,13 +126,13 @@ export default function LeadDetailsPage() {
                   </div>
                   <p className="text-xl text-slate-100 font-medium italic leading-relaxed">
                     {analysis.status === 'NO_WEBSITE' 
-                      ? "Ausência de site profissional. A empresa depende de plataformas de terceiros, resultando em menor autoridade e margens reduzidas." 
-                      : `"${analysisData?.aiData?.mainPainPoint || 'O site atual apresenta falhas estruturais que impedem a conversão máxima de leads.'}"`}
+                      ? "Ausência de domínio profissional detectada. A empresa depende 100% de redes sociais e marketplaces, perdendo autoridade e margem de lucro." 
+                      : `"${analysisData?.aiData?.mainPainPoint || 'O site atual possui falhas de UX que podem estar drenando suas conversões diárias.'}"`}
                   </p>
                </div>
             </div>
 
-            {/* SEÇÃO: HISTÓRICO DE CONTATO */}
+            {/* HISTÓRICO DE CONTATO */}
             <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <MessageSquare className="w-6 h-6 text-primary" />
@@ -122,8 +142,8 @@ export default function LeadDetailsPage() {
                 <textarea 
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Registre as interações (ex: Liguei e falei com o proprietário, retorno agendado para terça)..."
-                  className="w-full bg-background border border-slate-700 rounded-2xl p-6 text-slate-300 outline-none focus:ring-2 focus:ring-primary min-h-[150px] transition-all resize-none"
+                  placeholder="Registre aqui as interações com o lead..."
+                  className="w-full bg-background border border-slate-700 rounded-2xl p-6 text-slate-300 outline-none focus:ring-2 focus:ring-primary min-h-[150px] transition-all resize-none shadow-inner"
                 />
                 <button 
                   onClick={handleSaveNotes}
@@ -135,7 +155,7 @@ export default function LeadDetailsPage() {
               </div>
             </section>
 
-            {/* SEÇÃO: BRANDING & ESTRATÉGIA VISUAL */}
+            {/* BRANDING IA */}
             <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl">
               <div className="flex items-center gap-4 mb-12 border-b border-slate-800 pb-8">
                 <div className="p-4 bg-primary/10 rounded-2xl" style={{ backgroundColor: `${pColor}15` }}>
@@ -143,7 +163,7 @@ export default function LeadDetailsPage() {
                 </div>
                 <div>
                   <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Manual Visual Sugerido</h2>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Design Advisory Report</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Design Intelligence</p>
                 </div>
               </div>
 
@@ -151,14 +171,14 @@ export default function LeadDetailsPage() {
                 <div className="space-y-10">
                   <div className="flex items-end gap-6">
                     <div className="space-y-3">
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Primária</p>
+                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Base</p>
                        <div className="w-20 h-20 rounded-[2rem] shadow-2xl border-4 border-white/10" style={{ backgroundColor: pColor }}></div>
-                       <p className="text-xs font-mono text-white text-center">{pColor}</p>
+                       <p className="text-xs font-mono text-white text-center uppercase">{pColor}</p>
                     </div>
                     <div className="space-y-3">
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Secundária</p>
+                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Destaque</p>
                        <div className="w-14 h-14 rounded-[1.5rem] shadow-xl border-2 border-white/10" style={{ backgroundColor: sColor }}></div>
-                       <p className="text-[10px] font-mono text-slate-400 text-center">{sColor}</p>
+                       <p className="text-[10px] font-mono text-slate-400 text-center uppercase">{sColor}</p>
                     </div>
                   </div>
 
@@ -176,9 +196,9 @@ export default function LeadDetailsPage() {
 
                 <div className="space-y-6">
                    <div className="p-6 bg-background/40 rounded-[2rem] border border-slate-800">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Estilo: <span className="text-white ml-2">{ds?.style || 'Contemporâneo'}</span></p>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Estilo: <span className="text-white ml-2 italic uppercase">{ds?.style || 'Contemporâneo'}</span></p>
                       <p className="text-sm text-slate-300 italic leading-relaxed mb-6">
-                        "{ds?.designReasoning || 'Identidade visual focada em elevar o valor percebido da marca no ambiente digital.'}"
+                        "{ds?.designReasoning || 'Escolha visual focada em elevar o valor percebido da marca no mercado digital.'}"
                       </p>
                       {ds?.referenceSite && (
                         <a href={ds.referenceSite} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all text-primary">
@@ -191,8 +211,9 @@ export default function LeadDetailsPage() {
             </section>
           </div>
 
-          {/* SIDEBAR DE AÇÕES */}
+          {/* SIDEBAR */}
           <div className="space-y-6">
+            
             <button 
               onClick={handleSaveToCRM}
               disabled={isSaved}
@@ -206,7 +227,7 @@ export default function LeadDetailsPage() {
 
             <button onClick={() => setIsModalOpen(true)} className="w-full text-white font-black py-8 rounded-[2.5rem] shadow-2xl transition-all flex flex-col items-center justify-center gap-1 active:scale-95 uppercase italic tracking-tighter text-xl" style={{ backgroundColor: pColor }}>
               Enviar Proposta
-              <span className="text-[9px] opacity-60 not-italic tracking-widest uppercase font-bold">Baseada em Inteligência</span>
+              <span className="text-[9px] opacity-60 not-italic tracking-widest uppercase font-bold">Gerar Script com IA</span>
             </button>
 
             <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-xl">
@@ -214,7 +235,7 @@ export default function LeadDetailsPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-primary/10 rounded-xl text-primary"><Phone className="w-5 h-5" /></div>
-                  <span className="text-sm font-bold">{lead.internationalPhoneNumber || 'Não informado'}</span>
+                  <span className="text-sm font-bold">{lead.internationalPhoneNumber || 'Privado/Não informado'}</span>
                 </div>
                 {analysisData?.emails?.length > 0 && (
                   <div className="flex items-start gap-4">
@@ -226,14 +247,23 @@ export default function LeadDetailsPage() {
                 )}
               </div>
               
-              {/* LISTAGEM DE REDES SOCIAIS E IFOOD */}
+              {/* REDES SOCIAIS COM CARREGAMENTO ON-DEMAND */}
               <div className="flex justify-center flex-wrap gap-4 mt-10 pt-6 border-t border-slate-800">
-                {analysis.socialLinks?.map((s, i) => (
-                  <a key={i} href={s.url} target="_blank" rel="noreferrer" className="p-4 bg-slate-900 border border-slate-700 rounded-2xl hover:border-primary transition-all flex flex-col items-center gap-2 group">
-                    {getSocialIcon(s.network)}
-                    <span className="text-[8px] uppercase font-bold text-slate-500 group-hover:text-white transition-colors">{s.network}</span>
-                  </a>
-                ))}
+                {loadingSocials ? (
+                  <div className="flex flex-col items-center gap-2 animate-pulse">
+                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                    <span className="text-[8px] font-black uppercase text-slate-500">Rastreando Redes...</span>
+                  </div>
+                ) : socialLinks && socialLinks.length > 0 ? (
+                  socialLinks.map((s: any, i: number) => (
+                    <a key={i} href={s.url} target="_blank" rel="noreferrer" className="p-4 bg-slate-900 border border-slate-700 rounded-2xl hover:border-primary transition-all flex flex-col items-center gap-2 group">
+                      {getSocialIcon(s.network)}
+                      <span className="text-[8px] uppercase font-bold text-slate-500 group-hover:text-white transition-colors">{s.network}</span>
+                    </a>
+                  ))
+                ) : (
+                  <span className="text-[10px] text-slate-600 italic">Redes Sociais não encontradas</span>
+                )}
               </div>
             </div>
           </div>

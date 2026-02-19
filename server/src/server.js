@@ -30,6 +30,7 @@ app.use(express.json());
 
 // Rotas Antigas
 app.post('/api/leads/search', getLeads);
+app.post('/api/leads/socials', getSocials);
 app.get('/api/stats', getGlobalStats);
 
 // NOVAS ROTAS DE CRM

@@ -1,9 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-// Aumentamos para 15 segundos para evitar o erro de timeout em conexões lentas
 const TIMEOUT_MS = 15000; 
-
 const AXIOS_CONFIG = {
   headers: {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -12,7 +10,6 @@ const AXIOS_CONFIG = {
   timeout: TIMEOUT_MS
 };
 
-// MOTOR 1: GOOGLE (Prioridade por precisão)
 const searchGoogle = async (query) => {
   try {
     const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&gbv=1`;
@@ -26,13 +23,9 @@ const searchGoogle = async (query) => {
       }
     });
     return links;
-  } catch (err) {
-    console.log(`⚠️ Google falhou/bloqueou: ${err.message}`);
-    return [];
-  }
+  } catch { return []; }
 };
 
-// MOTOR 2: DUCKDUCKGO (Reserva caso o Google dê timeout ou bloqueie)
 const searchDuckDuckGo = async (query) => {
   try {
     const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
@@ -41,22 +34,15 @@ const searchDuckDuckGo = async (query) => {
     const links = [];
     $('.result__a').each((i, el) => links.push($(el).attr('href')));
     return links;
-  } catch (err) {
-    console.log(`⚠️ DuckDuckGo falhou: ${err.message}`);
-    return [];
-  }
+  } catch { return []; }
 };
 
 export const findSocialLinks = async (companyName, address) => {
   const city = address ? address.split(',').slice(-2).join(' ') : '';
   const query = `"${companyName}" ${city} instagram facebook ifood`;
   
-  // TENTATIVA 1: GOOGLE
   let rawLinks = await searchGoogle(query);
-
-  // TENTATIVA 2: Se o Google não trouxe nada (ou deu timeout), tenta o DuckDuckGo
   if (rawLinks.length === 0) {
-    console.log(`🔄 Google falhou para "${companyName}", tentando DuckDuckGo...`);
     rawLinks = await searchDuckDuckGo(query);
   }
 
