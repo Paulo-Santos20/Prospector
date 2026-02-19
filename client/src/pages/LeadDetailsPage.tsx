@@ -37,7 +37,6 @@ export default function LeadDetailsPage() {
     }
   };
 
-  // Helper para ícones sociais
   const getSocialIcon = (network: string) => {
     switch (network.toLowerCase()) {
       case 'facebook': return <Facebook className="w-5 h-5 text-[#1877F2]" />;
@@ -63,7 +62,6 @@ export default function LeadDetailsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           
           <div className="lg:col-span-2 space-y-10">
-            {/* HERO CARD */}
             <div className="bg-surface border border-slate-700/50 rounded-[3rem] p-10 shadow-3xl relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[120px] pointer-events-none" style={{ backgroundColor: pColor }}></div>
                
@@ -88,7 +86,6 @@ export default function LeadDetailsPage() {
                </div>
             </div>
 
-            {/* SEÇÃO DE BRANDING */}
             <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl">
               <div className="flex items-center gap-4 mb-12 border-b border-slate-800 pb-8">
                 <div className="p-4 bg-primary/10 rounded-2xl" style={{ backgroundColor: `${pColor}15` }}>
@@ -178,7 +175,6 @@ export default function LeadDetailsPage() {
                 )}
               </div>
               
-              {/* LINKS SOCIAIS (IG, FB, IFOOD) */}
               <div className="flex justify-center flex-wrap gap-4 mt-10 pt-6 border-t border-slate-800">
                 {analysis.socialLinks?.map((s, i) => (
                   <a key={i} href={s.url} target="_blank" rel="noreferrer" className="p-4 bg-slate-900 border border-slate-700 rounded-2xl hover:border-primary transition-all flex flex-col items-center gap-2">
@@ -193,15 +189,6 @@ export default function LeadDetailsPage() {
       </main>
 
       <ProposalModal lead={lead} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-    </div>
-  );
-}
-
-function DetailRow({ label, value }: any) {
-  return (
-    <div className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
-      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
-      <span className="text-[10px] text-white font-bold uppercase">{value}</span>
     </div>
   );
 }
