@@ -31,8 +31,8 @@ export const LeadCard = ({ lead }: { lead: Lead }) => {
           <p className="text-xs text-red-400 font-bold flex items-center"><Globe className="w-3 h-3 mr-2" /> Oportunidade: Criar Presença Digital</p>
         ) : (
           <div className="flex gap-4 text-[10px] text-slate-400 font-bold uppercase">
-            <span className={analysis.isSecure ? 'text-emerald-500' : 'text-red-500'}><ShieldAlert className="w-3 h-3 inline mr-1" /> SSL</span>
-            <span className={analysis.isResponsive ? 'text-emerald-500' : 'text-red-500'}><Smartphone className="w-3 h-3 inline mr-1" /> Mobile</span>
+            <span className={analysis?.isSecure ? 'text-emerald-500' : 'text-red-500'}><ShieldAlert className="w-3 h-3 inline mr-1" /> SSL</span>
+            <span className={analysis?.isResponsive ? 'text-emerald-500' : 'text-red-500'}><Smartphone className="w-3 h-3 inline mr-1" /> Mobile</span>
           </div>
         )}
       </div>

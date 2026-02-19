@@ -6,11 +6,18 @@ export interface Lead {
   displayName: { text: string };
   websiteUri?: string;
   internationalPhoneNumber?: string;
+  rating?: number;
+  userRatingCount?: number;
   notes?: string;
   analysis: {
-    status: string;
+    status: 'NO_WEBSITE' | 'HIGH_OPPORTUNITY' | 'MODERATE' | 'MODERN_SITE' | 'ERROR_ACCESSING' | 'UNKNOWN' | string;
+    opportunityScore?: number;
+    details?: string[];
     emails?: string[];
     socialLinks?: Array<{ network: string; url: string }>;
+    isResponsive?: boolean;
+    isSecure?: boolean;
+    copyrightYear?: number;
     aiData?: any;
   };
 }

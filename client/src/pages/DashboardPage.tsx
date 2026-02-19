@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 import { searchLeads } from '../features/search/services/searchService';
-import { LeadCard } from '../features/leads/components/LeadCard';
+import { LeadCard } from '../components/LeadCard'; // Usando o componente principal
 
 export default function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,8 +44,9 @@ export default function DashboardPage() {
       if (!l.analysis) return activeFilter === 'all';
       switch (activeFilter) {
         case 'no_website': return l.analysis.status === 'NO_WEBSITE' || !l.websiteUri;
-        case 'insecure': return l.analysis.status !== 'NO_WEBSITE' && l.websiteUri && !l.analysis.isSecure;
-        case 'not_responsive': return l.analysis.status !== 'NO_WEBSITE' && l.websiteUri && !l.analysis.isResponsive;
+        // Corrigido: Validando se a propriedade existe com verificação de nulo/undefined
+        case 'insecure': return l.analysis.status !== 'NO_WEBSITE' && l.websiteUri && l.analysis.isSecure === false;
+        case 'not_responsive': return l.analysis.status !== 'NO_WEBSITE' && l.websiteUri && l.analysis.isResponsive === false;
         default: return true;
       }
     });
@@ -68,7 +69,6 @@ export default function DashboardPage() {
           </div>
           
           <div className="flex items-center gap-4">
-            {/* BOTÃO DO CRM ADICIONADO AQUI */}
             <Link 
               to="/crm" 
               className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all border border-slate-700 hover:border-primary shadow-lg"
@@ -127,7 +127,8 @@ export default function DashboardPage() {
           <div className="flex flex-wrap gap-3 mb-8">
             <FilterButton active={activeFilter === 'all'} onClick={() => setActiveFilter('all')} icon={<Globe />} label="Todos" count={data.leads.length} />
             <FilterButton active={activeFilter === 'no_website'} onClick={() => setActiveFilter('no_website')} icon={<AlertCircle />} label="Sem Site" variant="danger" count={data.leads.filter(l => l.analysis?.status === 'NO_WEBSITE' || !l.websiteUri).length} />
-            <FilterButton active={activeFilter === 'insecure'} onClick={() => setActiveFilter('insecure')} icon={<ShieldAlert />} label="Inseguros" variant="warning" count={data.leads.filter(l => l.analysis?.status !== 'NO_WEBSITE' && l.websiteUri && !l.analysis?.isSecure).length} />
+            {/* Corrigido o acesso ao .length seguro aqui também */}
+            <FilterButton active={activeFilter === 'insecure'} onClick={() => setActiveFilter('insecure')} icon={<ShieldAlert />} label="Inseguros" variant="warning" count={data.leads.filter(l => l.analysis?.status !== 'NO_WEBSITE' && l.websiteUri && l.analysis?.isSecure === false).length} />
           </div>
         )}
 
