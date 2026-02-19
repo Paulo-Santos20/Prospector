@@ -3,20 +3,24 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { getLeads } from './controllers/leadsController.js';
 import { getGlobalStats } from './controllers/statsController.js';
-import { saveToCRM, getCRMLeads, updateCRMLead } from './controllers/crmController.js'; // IMPORT NOVO
+import { saveToCRM, getCRMLeads, updateCRMLead } from './controllers/crmController.js'; 
 
 dotenv.config();
 const app = express();
 
+// --- CORREÇÃO DO CORS: Link exato, sem barra "/" no final ---
 const allowedOrigins = [
   'http://localhost:5173', 
-  'https://prospector-dun.vercel.app/' 
+  'https://prospector-dun.vercel.app' 
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) callback(null, true);
-    else callback(new Error('Bloqueado pelo CORS'));
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Bloqueado pelo CORS'));
+    }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true

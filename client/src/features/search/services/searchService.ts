@@ -18,6 +18,7 @@ export interface Lead {
     isResponsive?: boolean;
     isSecure?: boolean;
     copyrightYear?: number;
+    aiData?: any; // Adicionado para suportar os dados gerados pela Groq IA
   };
 }
 
