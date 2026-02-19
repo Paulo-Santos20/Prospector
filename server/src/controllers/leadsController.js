@@ -4,9 +4,9 @@ import admin from 'firebase-admin';
 import { searchPlaces } from '../services/googleService.js';
 import { analyzeWebsite } from '../services/analyzerService.js';
 import { findEmailViaSearch } from '../services/googleSearchService.js';
-import { findSocialLinks } from '../services/socialScraper.js'; // Atualizado para buscar tudo
+import { findSocialLinks } from '../services/socialScraper.js'; // O NOVO SERVIÇO
 
-const limit = pLimit(5);
+const limit = pLimit(3); // Reduzi para 3 para o Google não bloquear por excesso de requisições
 
 export const getLeads = async (req, res) => {
   try {
@@ -19,49 +19,39 @@ export const getLeads = async (req, res) => {
           try {
             const leadRef = db.collection('leads').doc(place.id);
             const doc = await leadRef.get();
-            const cacheLimit = Date.now() - 86400000; // 24h
+            const cacheLimit = Date.now() - 86400000; // Cache de 24h
 
             if (doc.exists) {
               const data = doc.data();
-              const isRecent = data.updatedAt.toMillis() > cacheLimit;
-              if (isRecent && data.analysis?.aiData) {
+              if (data.updatedAt.toMillis() > cacheLimit && data.analysis?.aiData) {
                 return { ...place, analysis: data.analysis };
               }
             }
 
-            // --- PROCESSAMENTO: IA + SCRAPING ---
-            let analysis = await analyzeWebsite(
-              place.websiteUri, 
-              place.displayName.text, 
-              place.userRatingCount, 
-              place.priceLevel
-            );
+            // 1. Análise Base e IA
+            let analysis = await analyzeWebsite(place.websiteUri, place.displayName.text, place.userRatingCount, place.priceLevel);
 
-            // --- BUSCA DE REDES SOCIAIS E MARKETPLACES (IG, FB, IFOOD) ---
-            const extraLinks = await findSocialLinks(place.displayName.text, location);
-            if (extraLinks.length > 0) {
+            // 2. BUSCA NO GOOGLE (Instagram, FB, iFood)
+            const socials = await findSocialLinks(place.displayName.text, location);
+            if (socials.length > 0) {
               if (!analysis.socialLinks) analysis.socialLinks = [];
-              
-              extraLinks.forEach(newLink => {
-                const exists = analysis.socialLinks.some(s => s.network === newLink.network);
-                if (!exists) analysis.socialLinks.push(newLink);
+              socials.forEach(s => {
+                if (!analysis.socialLinks.some(existing => existing.network === s.network)) {
+                  analysis.socialLinks.push(s);
+                }
               });
             }
 
-            // Busca e-mail externamente se necessário
+            // 3. E-mails extras
             if (!analysis.emails || analysis.emails.length === 0) {
               analysis.emails = await findEmailViaSearch(place.displayName.text, location);
             }
 
             const finalLead = { ...place, analysis };
-            await leadRef.set({ 
-              ...finalLead, 
-              updatedAt: admin.firestore.Timestamp.now() 
-            }, { merge: true });
+            await leadRef.set({ ...finalLead, updatedAt: admin.firestore.Timestamp.now() }, { merge: true });
 
             return finalLead;
           } catch (err) {
-            console.error(`Erro no lead ${place.id}:`, err);
             return { ...place, analysis: { status: 'ERROR', emails: [] } };
           }
         })

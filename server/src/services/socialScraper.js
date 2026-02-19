@@ -4,44 +4,59 @@ import * as cheerio from 'cheerio';
 export const findSocialLinks = async (companyName, address) => {
   try {
     const city = address ? address.split(',').slice(-2).join(' ') : '';
-    // Simplificamos a query para o buscador não se confundir
+    // Query ultra-refinada para o Google
     const query = `${companyName} ${city} instagram facebook ifood`;
-    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    
+    // Utilizamos a versão "gbv=1" do Google (versão leve sem JS, ideal para scraping)
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&gbv=1&lr=lang_pt`;
 
     const response = await axios.get(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8',
+        'Accept': 'text/html,application/xhtml+xml,xml;q=0.9,image/avif,webp,*/*;q=0.8'
       },
-      timeout: 5000
+      timeout: 7000
     });
 
     const $ = cheerio.load(response.data);
     const links = [];
 
-    // Buscamos em todos os links de resultados (classe .result__a)
-    $('a.result__a').each((i, el) => {
-      const href = $(el).attr('href') || '';
-      const url = href.toLowerCase();
+    // No Google Lite, os links ficam dentro de tags <a> simples
+    $('a').each((i, el) => {
+      let href = $(el).attr('href') || '';
       
-      // Captura Instagram
-      if (url.includes('instagram.com') && !url.includes('/p/') && !url.includes('/explore/') && !links.find(l => l.network === 'instagram')) {
-        links.push({ network: 'instagram', url: href });
+      // O Google mascara os links externos: /url?q=https://instagram.com/perfil
+      if (href.startsWith('/url?q=')) {
+        href = href.split('/url?q=')[1].split('&')[0];
+        href = decodeURIComponent(href);
+      }
+
+      const urlLower = href.toLowerCase();
+
+      // Regra para Instagram
+      if (urlLower.includes('instagram.com/') && !urlLower.includes('/p/') && !urlLower.includes('/explore/')) {
+        if (!links.find(l => l.network === 'instagram')) {
+          links.push({ network: 'instagram', url: href.split('?')[0] });
+        }
       }
       
-      // Captura Facebook
-      if (url.includes('facebook.com') && !url.includes('/sharer') && !links.find(l => l.network === 'facebook')) {
-        links.push({ network: 'facebook', url: href });
+      // Regra para Facebook
+      if (urlLower.includes('facebook.com/') && !urlLower.includes('/sharer') && !urlLower.includes('/pages/')) {
+        if (!links.find(l => l.network === 'facebook')) {
+          links.push({ network: 'facebook', url: href.split('?')[0] });
+        }
       }
-      
-      // Captura iFood
-      if (url.includes('ifood.com.br') && !links.find(l => l.network === 'ifood')) {
-        links.push({ network: 'ifood', url: href });
+
+      // Regra para iFood
+      if (urlLower.includes('ifood.com.br/') && !links.find(l => l.network === 'ifood')) {
+        links.push({ network: 'ifood', url: href.split('?')[0] });
       }
     });
 
-    console.log(`🔎 [SCRAPER] Resultados para ${companyName}:`, links.map(l => l.network));
     return links;
   } catch (error) {
+    console.error(`⚠️ Erro no Google Scraper para ${companyName}:`, error.message);
     return [];
   }
 };

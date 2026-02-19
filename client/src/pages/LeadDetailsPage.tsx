@@ -1,7 +1,8 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, MapPin, Phone, Mail, Share2, Facebook, Instagram, 
-  ExternalLink, AlertCircle, Sparkles, Palette, Type, Star, UtensilsCrossed, Save, MessageSquare 
+  ExternalLink, AlertCircle, Sparkles, Palette, Type, Star, 
+  UtensilsCrossed, Save, MessageSquare 
 } from 'lucide-react';
 import { type Lead } from '../features/search/services/searchService';
 import { ProposalModal } from '../features/leads/components/ProposalModal';
@@ -12,7 +13,7 @@ export default function LeadDetailsPage() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Recupera o lead passado via estado da rota
+  // Recupera o lead do estado da rota
   const lead = location.state?.lead as Lead;
   
   // Estados para Modal, CRM e Notas
@@ -21,7 +22,7 @@ export default function LeadDetailsPage() {
   const [notes, setNotes] = useState((lead as any)?.notes || '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
-  // Fallback caso a sessão expire ou o lead não exista
+  // Fallback para sessão expirada
   if (!lead) return (
     <div className="min-h-screen bg-background flex items-center justify-center text-slate-400 font-black uppercase tracking-widest">
       Sessão Expirada ou Lead Inválido
@@ -32,26 +33,26 @@ export default function LeadDetailsPage() {
   const analysisData: any = analysis;
   const ds = analysisData?.aiData?.designStrategy;
   
-  // Cores dinâmicas extraídas da IA para personalização do Report
+  // Definição de cores baseada na estratégia da IA
   const pColor = ds?.primaryColor || '#3B82F6';
   const sColor = ds?.secondaryColor || '#6366F1';
 
-  // Função para favoritar o lead no banco de dados do CRM
+  // Função para salvar no CRM
   const handleSaveToCRM = async () => {
     try {
       await saveLeadToCRM(lead);
       setIsSaved(true);
     } catch (error) {
-      console.error("Erro ao salvar lead no CRM", error);
+      console.error("Erro ao salvar no CRM", error);
     }
   };
 
-  // Função para salvar o histórico de contato/notas
+  // Função para salvar anotações de contato
   const handleSaveNotes = async () => {
     setIsSavingNotes(true);
     try {
       await updateLeadNotes(lead.id, notes);
-      alert("Anotação salva no CRM com sucesso!");
+      alert("Histórico atualizado no CRM!");
     } catch (error) {
       console.error("Erro ao salvar notas", error);
     } finally {
@@ -59,7 +60,7 @@ export default function LeadDetailsPage() {
     }
   };
 
-  // Helper para renderizar o ícone correto de cada rede
+  // Helper de ícones para redes sociais e marketplaces
   const getSocialIcon = (network: string) => {
     switch (network.toLowerCase()) {
       case 'facebook': return <Facebook className="w-5 h-5 text-[#1877F2]" />;
@@ -71,7 +72,7 @@ export default function LeadDetailsPage() {
 
   return (
     <div className="min-h-screen bg-background text-slate-200 pb-20 font-sans selection:bg-primary selection:text-white">
-      {/* HEADER DE NAVEGAÇÃO */}
+      {/* HEADER */}
       <header className="border-b border-slate-800 bg-surface/80 backdrop-blur-md sticky top-0 z-50 px-4 h-20 flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="flex items-center text-slate-400 hover:text-white transition-all font-black uppercase text-[10px] tracking-[0.3em] group">
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Voltar
@@ -85,10 +86,8 @@ export default function LeadDetailsPage() {
       <main className="max-w-6xl mx-auto px-4 mt-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           
-          {/* COLUNA PRINCIPAL: DIAGNÓSTICO E BRANDING */}
           <div className="lg:col-span-2 space-y-10">
-            
-            {/* CARD HERO COM DIAGNÓSTICO IA */}
+            {/* HERO CARD & DIAGNÓSTICO */}
             <div className="bg-surface border border-slate-700/50 rounded-[3rem] p-10 shadow-3xl relative overflow-hidden group">
                <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[120px] pointer-events-none" style={{ backgroundColor: pColor }}></div>
                
@@ -103,17 +102,17 @@ export default function LeadDetailsPage() {
                <div className="p-8 bg-red-500/5 border-l-8 border-red-500 rounded-r-[2rem] relative z-10 backdrop-blur-sm">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-red-500/20 rounded-lg"><AlertCircle className="w-5 h-5 text-red-500" /></div>
-                    <span className="text-[12px] font-black text-red-500 uppercase tracking-[0.3em]">Status de Presença Digital</span>
+                    <span className="text-[12px] font-black text-red-500 uppercase tracking-[0.3em]">Diagnóstico de Conversão</span>
                   </div>
                   <p className="text-xl text-slate-100 font-medium italic leading-relaxed">
                     {analysis.status === 'NO_WEBSITE' 
-                      ? "Ausência de domínio próprio. A empresa depende 100% de redes sociais e marketplaces, perdendo margem e controle de clientes." 
-                      : `"${analysisData?.aiData?.mainPainPoint || 'O site atual necessita de modernização estrutural para converter mais visitantes.'}"`}
+                      ? "Ausência de site profissional. A empresa depende de plataformas de terceiros, resultando em menor autoridade e margens reduzidas." 
+                      : `"${analysisData?.aiData?.mainPainPoint || 'O site atual apresenta falhas estruturais que impedem a conversão máxima de leads.'}"`}
                   </p>
                </div>
             </div>
 
-            {/* SEÇÃO: HISTÓRICO DE CONTATO (NOTAS) */}
+            {/* SEÇÃO: HISTÓRICO DE CONTATO */}
             <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl">
               <div className="flex items-center gap-3 mb-6">
                 <MessageSquare className="w-6 h-6 text-primary" />
@@ -123,7 +122,7 @@ export default function LeadDetailsPage() {
                 <textarea 
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Registre aqui o que conversou com o cliente (ex: Falei com o gerente Paulo, pediu para ligar na quarta às 14h)..."
+                  placeholder="Registre as interações (ex: Liguei e falei com o proprietário, retorno agendado para terça)..."
                   className="w-full bg-background border border-slate-700 rounded-2xl p-6 text-slate-300 outline-none focus:ring-2 focus:ring-primary min-h-[150px] transition-all resize-none"
                 />
                 <button 
@@ -136,15 +135,15 @@ export default function LeadDetailsPage() {
               </div>
             </section>
 
-            {/* SEÇÃO: MANUAL VISUAL (IA) */}
+            {/* SEÇÃO: BRANDING & ESTRATÉGIA VISUAL */}
             <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl">
               <div className="flex items-center gap-4 mb-12 border-b border-slate-800 pb-8">
                 <div className="p-4 bg-primary/10 rounded-2xl" style={{ backgroundColor: `${pColor}15` }}>
                   <Palette className="w-8 h-8" style={{ color: pColor }} />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Identidade Sugerida</h2>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Manual Visual Consultivo</p>
+                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Manual Visual Sugerido</h2>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Design Advisory Report</p>
                 </div>
               </div>
 
@@ -152,14 +151,14 @@ export default function LeadDetailsPage() {
                 <div className="space-y-10">
                   <div className="flex items-end gap-6">
                     <div className="space-y-3">
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Base</p>
+                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Primária</p>
                        <div className="w-20 h-20 rounded-[2rem] shadow-2xl border-4 border-white/10" style={{ backgroundColor: pColor }}></div>
-                       <p className="text-xs font-mono text-white text-center uppercase">{pColor}</p>
+                       <p className="text-xs font-mono text-white text-center">{pColor}</p>
                     </div>
                     <div className="space-y-3">
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Destaque</p>
+                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Secundária</p>
                        <div className="w-14 h-14 rounded-[1.5rem] shadow-xl border-2 border-white/10" style={{ backgroundColor: sColor }}></div>
-                       <p className="text-[10px] font-mono text-slate-400 text-center uppercase">{sColor}</p>
+                       <p className="text-[10px] font-mono text-slate-400 text-center">{sColor}</p>
                     </div>
                   </div>
 
@@ -178,8 +177,8 @@ export default function LeadDetailsPage() {
                 <div className="space-y-6">
                    <div className="p-6 bg-background/40 rounded-[2rem] border border-slate-800">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Estilo: <span className="text-white ml-2">{ds?.style || 'Contemporâneo'}</span></p>
-                      <p className="text-sm text-slate-300 italic font-medium leading-relaxed mb-6">
-                        "{ds?.designReasoning || 'Escolha visual focada em transmitir a essência premium do estabelecimento para o público digital.'}"
+                      <p className="text-sm text-slate-300 italic leading-relaxed mb-6">
+                        "{ds?.designReasoning || 'Identidade visual focada em elevar o valor percebido da marca no ambiente digital.'}"
                       </p>
                       {ds?.referenceSite && (
                         <a href={ds.referenceSite} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all text-primary">
@@ -192,9 +191,8 @@ export default function LeadDetailsPage() {
             </section>
           </div>
 
-          {/* COLUNA LATERAL: AÇÕES E CONTATOS */}
+          {/* SIDEBAR DE AÇÕES */}
           <div className="space-y-6">
-            
             <button 
               onClick={handleSaveToCRM}
               disabled={isSaved}
@@ -212,11 +210,11 @@ export default function LeadDetailsPage() {
             </button>
 
             <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-xl">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-8 border-b border-slate-800 pb-3">Informações de Contato</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-8 border-b border-slate-800 pb-3">Contatos e Redes</h3>
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-primary/10 rounded-xl text-primary"><Phone className="w-5 h-5" /></div>
-                  <span className="text-sm font-bold">{lead.internationalPhoneNumber || 'Privado/Não informado'}</span>
+                  <span className="text-sm font-bold">{lead.internationalPhoneNumber || 'Não informado'}</span>
                 </div>
                 {analysisData?.emails?.length > 0 && (
                   <div className="flex items-start gap-4">
@@ -228,7 +226,7 @@ export default function LeadDetailsPage() {
                 )}
               </div>
               
-              {/* LINKS DE REDES SOCIAIS E MARKETPLACES */}
+              {/* LISTAGEM DE REDES SOCIAIS E IFOOD */}
               <div className="flex justify-center flex-wrap gap-4 mt-10 pt-6 border-t border-slate-800">
                 {analysis.socialLinks?.map((s, i) => (
                   <a key={i} href={s.url} target="_blank" rel="noreferrer" className="p-4 bg-slate-900 border border-slate-700 rounded-2xl hover:border-primary transition-all flex flex-col items-center gap-2 group">
@@ -242,7 +240,6 @@ export default function LeadDetailsPage() {
         </div>
       </main>
 
-      {/* MODAL DE CÓPIA DE SCRIPT/COPY */}
       <ProposalModal lead={lead} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
