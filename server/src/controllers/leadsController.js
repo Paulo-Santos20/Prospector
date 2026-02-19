@@ -1,67 +1,74 @@
 import pLimit from 'p-limit';
+import { db } from '../config/firebase.js';
+import admin from 'firebase-admin';
 import { searchPlaces } from '../services/googleService.js';
 import { analyzeWebsite } from '../services/analyzerService.js';
 import { findEmailViaSearch } from '../services/googleSearchService.js';
 
-// Define o limite de tarefas simultâneas (ex: 5 por vez) 
-// para não ser bloqueado pelo Google e não travar o servidor.
 const limit = pLimit(5);
 
 export const getLeads = async (req, res) => {
   try {
     const { niche, location } = req.body;
-
-    if (!niche || !location) {
-      return res.status(400).json({ error: 'Nicho e Localização são obrigatórios.' });
-    }
-
-    // 1. Busca os dados brutos no Google Places
     const rawLeads = await searchPlaces(niche, location);
 
-    if (!rawLeads || rawLeads.length === 0) {
-      return res.json({ count: 0, leads: [] });
-    }
-
-    // 2. Processamento Enriquecido com Limite de Concorrência
     const enrichedLeads = await Promise.all(
       rawLeads.map((place) => 
         limit(async () => {
           try {
-            // Executa a análise do site (SSL, Responsividade, Scraping de E-mail)
-            const analysis = await analyzeWebsite(place.websiteUri);
+            const leadRef = db.collection('leads').doc(place.id);
+            const doc = await leadRef.get();
             
-            // SE não achou e-mail no site OU o site é de terceiros (iFood/Insta)
-            // Tenta a busca profunda no Google Search
-            if (analysis.emails.length === 0) {
-              const searchEmails = await findEmailViaSearch(place.displayName.text, location);
+            // CACHE DE 24 HORAS (86400000 ms)
+            const cacheLimit = Date.now() - 86400000;
+
+            if (doc.exists) {
+              const data = doc.data();
+              const isRecent = data.updatedAt.toMillis() > cacheLimit;
               
-              if (searchEmails && searchEmails.length > 0) {
-                // Mescla e remove duplicatas
-                analysis.emails = [...new Set([...analysis.emails, ...searchEmails])];
+              // Se tiver análise de IA (aiData) e for recente, USA O CACHE
+              if (isRecent && data.analysis?.aiData) {
+                console.log(`📦 [CACHE 24H] ${place.displayName.text}`);
+                return { ...place, analysis: data.analysis };
               }
             }
 
-            return { ...place, analysis };
-          } catch (innerError) {
-            // Se um lead específico der erro, retorna ele com análise vazia em vez de quebrar a lista toda
-            console.error(`Erro ao processar lead ${place.displayName.text}:`, innerError.message);
-            return { 
-              ...place, 
-              analysis: { status: 'ERROR', emails: [], opportunityScore: 50 } 
-            };
+            // SE NÃO TEM CACHE OU PASSOU 24H, EXECUTA IA
+            console.log(`🧪 [IA + SCRAPING] Processando: ${place.displayName.text}`);
+            
+            let analysis = await analyzeWebsite(
+              place.websiteUri, 
+              place.displayName.text, 
+              place.userRatingCount, 
+              place.priceLevel
+            );
+
+            // Tenta buscar e-mail no Google se não achar no site/IA
+            if (!analysis.emails || analysis.emails.length === 0) {
+              const extraEmails = await findEmailViaSearch(place.displayName.text, location);
+              analysis.emails = extraEmails;
+            }
+
+            const finalLead = { ...place, analysis };
+
+            // Salva no Firebase com timestamp atualizado
+            await leadRef.set({
+              ...finalLead,
+              updatedAt: admin.firestore.Timestamp.now()
+            }, { merge: true });
+
+            return finalLead;
+
+          } catch (err) {
+            console.error(`Erro no lead ${place.id}:`, err);
+            return { ...place, analysis: { status: 'ERROR', emails: [] } };
           }
         })
       )
     );
 
-    // 3. Resposta Final
-    res.json({ 
-      count: enrichedLeads.length, 
-      leads: enrichedLeads 
-    });
-
+    res.json({ count: enrichedLeads.length, leads: enrichedLeads });
   } catch (error) {
-    console.error('Erro geral no getLeads:', error);
-    res.status(500).json({ error: 'Erro interno ao processar leads.' });
+    res.status(500).json({ error: 'Erro geral' });
   }
 };

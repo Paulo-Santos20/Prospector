@@ -30,4 +30,5 @@ logs/
 *.swo
 
 # Coverage de testes
-coverage/
+coverage/server/src/config/firebase-service-account.json
+server/src/config/firebase-service-account.json

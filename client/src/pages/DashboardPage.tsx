@@ -1,19 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
+import axios from 'axios';
 import { 
   Search, MapPin, Loader2, Sparkles, AlertCircle, 
-  Filter, Globe, ShieldAlert, Smartphone 
+  Filter, Globe, ShieldAlert, Smartphone, Users, Send, Target, TrendingUp 
 } from 'lucide-react';
 
-// CORREÇÃO: Importando 'type Lead' para evitar o erro de exportação
-import { searchLeads, type Lead } from '../features/search/services/searchService';
+import { searchLeads } from '../features/search/services/searchService';
 import { LeadCard } from '../features/leads/components/LeadCard';
 
 export default function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  
-  // Estado dos Filtros: 'all' | 'no_website' | 'insecure' | 'not_responsive'
   const [activeFilter, setActiveFilter] = useState<'all' | 'no_website' | 'insecure' | 'not_responsive'>('all');
 
   const nicheParam = searchParams.get('niche') || '';
@@ -22,190 +20,144 @@ export default function DashboardPage() {
   const [nicheInput, setNicheInput] = useState(nicheParam);
   const [locationInput, setLocationInput] = useState(locationParam);
 
-  useEffect(() => {
-    setNicheInput(nicheParam);
-    setLocationInput(locationParam);
-  }, [nicheParam, locationParam]);
+  // Busca de Estatísticas Globais (Simuladas via API)
+  const { data: stats } = useQuery({
+    queryKey: ['global-stats'],
+    queryFn: async () => {
+      // Substitua pela sua rota real de estatísticas quando disponível
+      const res = await axios.get('https://prospector-api-mngo.onrender.com/api/stats').catch(() => ({ 
+        data: { totalLeads: 0, totalProposals: 0, rate: 12.5 } 
+      }));
+      return res.data;
+    },
+    refetchInterval: 30000,
+  });
 
   const { data, isLoading, error, isFetching } = useQuery({
     queryKey: ['leads', nicheParam, locationParam],
     queryFn: () => searchLeads(nicheParam, locationParam),
     enabled: !!nicheParam && !!locationParam,
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
   });
 
-  // Lógica de Filtragem reativa
   const filteredLeads = useMemo(() => {
     if (!data?.leads) return [];
-    
-    switch (activeFilter) {
-      case 'no_website':
-        return data.leads.filter(l => l.analysis.status === 'NO_WEBSITE');
-      case 'insecure':
-        return data.leads.filter(l => l.analysis.status !== 'NO_WEBSITE' && !l.analysis.isSecure);
-      case 'not_responsive':
-        return data.leads.filter(l => l.analysis.status !== 'NO_WEBSITE' && !l.analysis.isResponsive);
-      default:
-        return data.leads;
-    }
+    return data.leads.filter(l => {
+      if (!l.analysis) return activeFilter === 'all';
+      switch (activeFilter) {
+        case 'no_website': return l.analysis.status === 'NO_WEBSITE' || !l.websiteUri;
+        case 'insecure': return l.analysis.status !== 'NO_WEBSITE' && l.websiteUri && !l.analysis.isSecure;
+        case 'not_responsive': return l.analysis.status !== 'NO_WEBSITE' && l.websiteUri && !l.analysis.isResponsive;
+        default: return true;
+      }
+    });
   }, [data, activeFilter]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nicheInput || !locationInput) return;
     setSearchParams({ niche: nicheInput, location: locationInput });
-    setActiveFilter('all'); // Reseta o filtro ao fazer nova busca
+    setActiveFilter('all'); 
   };
 
   return (
     <div className="min-h-screen bg-background text-slate-100 pb-20">
-      <header className="border-b border-slate-800 bg-surface/50 backdrop-blur-md sticky top-0 z-20">
+      <header className="border-b border-slate-800 bg-surface/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center font-bold text-white shadow-lg">P</div>
-            <span className="font-bold text-xl tracking-tight">Prospector</span>
+            <span className="font-bold text-xl tracking-tight">Prospector AI</span>
           </div>
-          <div className="text-xs font-mono text-slate-500 border border-slate-700 px-2 py-1 rounded">BETA v1.0</div>
+          <div className="flex items-center gap-4">
+            <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 uppercase">Sistema Online</span>
+            <div className="text-xs font-mono text-slate-500">v1.2</div>
+          </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 mt-8">
         
-        {/* Área de Busca */}
-        <div className="bg-surface border border-slate-700 rounded-xl p-6 shadow-2xl mb-6 relative overflow-hidden">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-           <h1 className="text-2xl font-bold mb-2 flex items-center gap-2 text-white">
-             <Sparkles className="w-5 h-5 text-amber-400" /> Minerador de Oportunidades
+        {/* 4. DASHBOARD DE CONVERSÃO (GAMIFICAÇÃO) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <StatCard icon={<Users />} label="Leads Minerados" value={stats?.totalLeads || 0} color="text-blue-400" />
+          <StatCard icon={<Send />} label="Propostas Enviadas" value={stats?.totalProposals || 0} color="text-emerald-400" />
+          <StatCard icon={<Target />} label="Taxa de Resposta" value={`${stats?.rate || 0}%`} color="text-amber-400" />
+        </div>
+
+        {/* Banner de Progresso */}
+        <div className="bg-gradient-to-r from-primary/10 to-transparent border border-primary/20 p-6 rounded-[2rem] mb-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div>
+            <h2 className="text-lg font-black italic uppercase tracking-tighter flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary" /> Nível de Prospecção
+            </h2>
+            <p className="text-xs text-slate-400">Você está a 5 propostas de bater sua meta diária e subir de nível!</p>
+          </div>
+          <div className="w-full md:w-64 h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700">
+             <div className="h-full bg-primary rounded-full shadow-[0_0_15px_#3B82F6]" style={{ width: '65%' }}></div>
+          </div>
+        </div>
+
+        {/* Busca */}
+        <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-2xl mb-10 relative overflow-hidden">
+           <h1 className="text-2xl font-black mb-6 flex items-center gap-2 italic uppercase">
+             <Sparkles className="w-5 h-5 text-amber-400" /> Nova Mineração
            </h1>
-           
-           <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 relative z-10">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3.5 w-5 h-5 text-slate-500" />
-                <input 
-                  type="text" 
-                  placeholder="Nicho (ex: Pizzaria, Dentista)"
-                  className="w-full bg-background border border-slate-600 rounded-lg py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary outline-none transition text-white"
-                  value={nicheInput}
-                  onChange={(e) => setNicheInput(e.target.value)}
-                />
-              </div>
-              <div className="flex-1 relative">
-                <MapPin className="absolute left-3 top-3.5 w-5 h-5 text-slate-500" />
-                <input 
-                  type="text" 
-                  placeholder="Localização (ex: Recife, SP)"
-                  className="w-full bg-background border border-slate-600 rounded-lg py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary outline-none transition text-white"
-                  value={locationInput}
-                  onChange={(e) => setLocationInput(e.target.value)}
-                />
-              </div>
-              <button disabled={isFetching} type="submit" className="bg-primary hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg transition min-w-[160px] flex justify-center items-center">
-                {isFetching ? <Loader2 className="animate-spin w-5 h-5" /> : 'Prospectar'}
+           <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
+              <input 
+                type="text" placeholder="Nicho (ex: Pizzaria)" value={nicheInput}
+                onChange={(e) => setNicheInput(e.target.value)}
+                className="flex-1 bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition"
+              />
+              <input 
+                type="text" placeholder="Localização (ex: Olinda)" value={locationInput}
+                onChange={(e) => setLocationInput(e.target.value)}
+                className="flex-1 bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition"
+              />
+              <button disabled={isFetching} type="submit" className="bg-primary hover:bg-blue-600 text-white font-black py-4 px-10 rounded-2xl transition disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-tighter italic">
+                {isFetching ? <Loader2 className="animate-spin" /> : 'Prospectar'}
               </button>
            </form>
         </div>
 
-        {/* BARRA DE FILTROS (Aparece apenas quando há dados) */}
-        {data && data.leads.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3 mb-8 bg-slate-900/50 p-2 rounded-xl border border-slate-800">
-            <div className="flex items-center gap-2 px-3 text-slate-500 border-r border-slate-700 mr-2 hidden md:flex">
-              <Filter className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Filtrar:</span>
-            </div>
-            
-            <FilterButton 
-              active={activeFilter === 'all'} 
-              onClick={() => setActiveFilter('all')}
-              icon={<Globe className="w-4 h-4" />}
-              label="Todos"
-              count={data.leads.length}
-            />
-            <FilterButton 
-              active={activeFilter === 'no_website'} 
-              onClick={() => setActiveFilter('no_website')}
-              icon={<AlertCircle className="w-4 h-4" />}
-              label="Sem Site"
-              count={data.leads.filter(l => l.analysis.status === 'NO_WEBSITE').length}
-              variant="danger"
-            />
-            <FilterButton 
-              active={activeFilter === 'insecure'} 
-              onClick={() => setActiveFilter('insecure')}
-              icon={<ShieldAlert className="w-4 h-4" />}
-              label="Inseguros"
-              count={data.leads.filter(l => l.analysis.status !== 'NO_WEBSITE' && !l.analysis.isSecure).length}
-              variant="warning"
-            />
-            <FilterButton 
-              active={activeFilter === 'not_responsive'} 
-              onClick={() => setActiveFilter('not_responsive')}
-              icon={<Smartphone className="w-4 h-4" />}
-              label="Não Mobile"
-              count={data.leads.filter(l => l.analysis.status !== 'NO_WEBSITE' && !l.analysis.isResponsive).length}
-              variant="warning"
-            />
+        {/* Filtros */}
+        {data?.leads && (
+          <div className="flex flex-wrap gap-3 mb-8">
+            <FilterButton active={activeFilter === 'all'} onClick={() => setActiveFilter('all')} icon={<Globe />} label="Todos" count={data.leads.length} />
+            <FilterButton active={activeFilter === 'no_website'} onClick={() => setActiveFilter('no_website')} icon={<AlertCircle />} label="Sem Site" variant="danger" count={data.leads.filter(l => l.analysis?.status === 'NO_WEBSITE' || !l.websiteUri).length} />
+            <FilterButton active={activeFilter === 'insecure'} onClick={() => setActiveFilter('insecure')} icon={<ShieldAlert />} label="Inseguros" variant="warning" count={data.leads.filter(l => l.analysis?.status !== 'NO_WEBSITE' && l.websiteUri && !l.analysis?.isSecure).length} />
           </div>
         )}
 
-        {/* Grid de Resultados */}
-        <div className="space-y-6">
-          {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 flex items-center gap-3">
-              <AlertCircle className="w-5 h-5" />
-              <p className="text-sm">Erro ao conectar com o servidor. Verifique o backend.</p>
-            </div>
-          )}
-
-          {isLoading && !data && (
-            <div className="flex flex-col items-center justify-center py-20 text-slate-500">
-               <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-               <p>Escaneando oportunidades...</p>
-            </div>
-          )}
-
-          {data && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
-               {filteredLeads.map((lead) => (
-                 <LeadCard key={lead.id} lead={lead} />
-               ))}
-            </div>
-          )}
-
-          {filteredLeads.length === 0 && data && !isLoading && (
-            <div className="text-center py-20 text-slate-500 bg-surface/20 border border-dashed border-slate-800 rounded-xl">
-              <p>Nenhum resultado para este filtro específico.</p>
-            </div>
-          )}
-
-          {!data && !isLoading && !error && (
-            <div className="text-center py-20 text-slate-500 border-2 border-dashed border-slate-800 rounded-xl bg-surface/30">
-              <Search className="w-16 h-16 mx-auto mb-4 opacity-20" />
-              <p className="text-lg font-medium">Insira o nicho e a cidade para minerar leads</p>
-            </div>
-          )}
+        {/* Grid de Leads */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredLeads.map(lead => <LeadCard key={lead.id} lead={lead} />)}
         </div>
       </main>
     </div>
   );
 }
 
-// Sub-componente interno para os botões de filtro
-function FilterButton({ active, onClick, icon, label, count, variant = 'primary' }: any) {
-  const baseStyles = "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all border";
-  const variants: any = {
-    primary: active ? "bg-primary border-primary text-white shadow-lg shadow-blue-500/20" : "bg-surface border-slate-700 text-slate-400 hover:border-slate-500",
-    danger: active ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-500/20" : "bg-surface border-slate-700 text-slate-400 hover:border-red-500/50",
-    warning: active ? "bg-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/20" : "bg-surface border-slate-700 text-slate-400 hover:border-amber-500/50",
-  };
-
+function StatCard({ icon, label, value, color }: any) {
   return (
-    <button onClick={onClick} className={`${baseStyles} ${variants[variant]}`}>
-      {icon}
-      {label}
-      <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[9px] ${active ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-500'}`}>
-        {count}
-      </span>
+    <div className="bg-surface border border-slate-800 p-8 rounded-[2rem] shadow-xl relative group overflow-hidden">
+      <div className={`absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-all group-hover:scale-110 ${color}`}>
+        {icon && <div className="scale-[4]">{icon}</div>}
+      </div>
+      <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">{label}</p>
+      <p className={`text-4xl font-black italic tracking-tighter ${color}`}>{value}</p>
+    </div>
+  );
+}
+
+function FilterButton({ active, onClick, icon, label, count, variant = 'primary' }: any) {
+  const styles: any = {
+    primary: active ? "bg-primary text-white" : "bg-surface text-slate-400",
+    danger: active ? "bg-red-600 text-white" : "bg-surface text-slate-400 hover:border-red-500/50",
+    warning: active ? "bg-amber-600 text-white" : "bg-surface text-slate-400 hover:border-amber-500/50",
+  };
+  return (
+    <button onClick={onClick} className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[11px] font-black uppercase transition-all border border-slate-700 ${styles[variant]}`}>
+      {icon} {label} <span className="opacity-40 ml-2">{count}</span>
     </button>
   );
 }

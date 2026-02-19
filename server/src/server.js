@@ -1,17 +1,17 @@
-import app from './app.js';
-import dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import { getLeads } from './controllers/leadsController.js';
+import { getGlobalStats } from './controllers/statsController.js'; // Importe o novo controller
 
-// Carregar variáveis de ambiente
-dotenv.config();
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Rotas
+app.post('/api/leads/search', getLeads);
+app.get('/api/stats', getGlobalStats); // ADICIONE ESTA LINHA PARA TIRAR O ERRO 404
 
 const PORT = process.env.PORT || 5000;
-
-// O servidor só fica vivo por causa desta função listen
 app.listen(PORT, () => {
-  console.log(`
-  ################################################
-  🚀 Server listening on port: ${PORT}
-  👉 http://localhost:${PORT}
-  ################################################
-  `);
+  console.log(`🚀 Server rodando na porta ${PORT}`);
 });

@@ -1,8 +1,8 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Globe, MapPin, Phone, Star, ShieldAlert, 
-  Smartphone, Calendar, Mail, Share2, Facebook, Instagram, 
-  Linkedin, Twitter, Youtube, ExternalLink, AlertCircle, TrendingUp, Sparkles
+  Smartphone, Mail, Share2, Facebook, Instagram, 
+  ExternalLink, AlertCircle, TrendingUp, Sparkles, Palette, Type 
 } from 'lucide-react';
 import { type Lead } from '../features/search/services/searchService';
 import { Badge } from '../components/ui/Badge';
@@ -15,277 +15,196 @@ export default function LeadDetailsPage() {
   const lead = location.state?.lead as Lead;
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  if (!lead) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center text-slate-400">
-        <div className="text-center">
-          <p className="mb-4 text-lg font-medium">Nenhum lead selecionado.</p>
-          <button 
-            onClick={() => navigate('/')} 
-            className="bg-primary text-white px-8 py-3 rounded-xl hover:bg-blue-600 transition-all shadow-lg font-bold"
-          >
-            Voltar para a busca
-          </button>
-        </div>
+  if (!lead) return (
+    <div className="min-h-screen bg-background flex items-center justify-center text-slate-400">
+      <div className="text-center space-y-4">
+        <p className="text-xl font-bold italic tracking-tighter">Sessão Expirada ou Lead Inválido.</p>
+        <button onClick={() => navigate('/')} className="bg-primary text-white px-8 py-3 rounded-xl font-black">VOLTAR</button>
       </div>
-    );
-  }
+    </div>
+  );
 
   const { analysis } = lead;
-
-  const getSocialIcon = (network: string) => {
-    switch (network) {
-      case 'facebook': return <Facebook className="w-5 h-5 text-blue-500" />;
-      case 'instagram': return <Instagram className="w-5 h-5 text-pink-500" />;
-      case 'linkedin': return <Linkedin className="w-5 h-5 text-blue-700" />;
-      case 'twitter': return <Twitter className="w-5 h-5 text-sky-500" />;
-      case 'youtube': return <Youtube className="w-5 h-5 text-red-600" />;
-      default: return <Share2 className="w-5 h-5 text-slate-400" />;
-    }
-  };
-
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.displayName.text + ' ' + lead.formattedAddress)}`;
-
-  // --- COMPONENTE DO TERMÔMETRO DE OPORTUNIDADE ---
-  const renderThermometer = () => {
-    const score = analysis.opportunityScore || 0;
-    const getColor = () => {
-      if (score > 80) return 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]';
-      if (score > 50) return 'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]';
-      return 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]';
-    };
-
-    return (
-      <div className="mt-8 bg-slate-900/80 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
-        <div className="flex justify-between items-end mb-4">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            <span className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Índice de Oportunidade</span>
-          </div>
-          <span className={`text-3xl font-black italic ${score > 50 ? 'text-white' : 'text-slate-500'}`}>
-            {score}%
-          </span>
-        </div>
-        
-        <div className="h-4 w-full bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-700 shadow-inner">
-          <div 
-            className={`h-full rounded-full transition-all duration-1000 ease-out ${getColor()}`} 
-            style={{ width: `${score}%` }}
-          />
-        </div>
-        
-        <p className="mt-4 text-xs text-slate-400 leading-relaxed italic flex items-start gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-          {score > 80 
-            ? "Oportunidade Crítica: Este negócio tem relevância no mercado, mas a infraestrutura digital é precária ou inexistente." 
-            : "Este lead possui uma base digital razoável, mas existem pontos técnicos que podem ser otimizados para conversão."}
-        </p>
-      </div>
-    );
-  };
+  const ds = analysis?.aiData?.designStrategy;
+  const pColor = ds?.primaryColor || '#3B82F6';
+  const sColor = ds?.secondaryColor || '#6366F1';
 
   return (
-    <div className="min-h-screen bg-background text-slate-200 pb-20">
-      {/* --- HEADER --- */}
-      <header className="border-b border-slate-800 bg-surface/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button 
-            onClick={() => navigate(-1)} 
-            className="flex items-center text-slate-400 hover:text-white transition-all font-bold group"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" /> 
-            Voltar
-          </button>
-          <span className="text-[10px] font-black tracking-[0.3em] text-slate-500 uppercase">Lead Profiler</span>
+    <div className="min-h-screen bg-background text-slate-200 pb-20 font-sans selection:bg-primary selection:text-white">
+      <header className="border-b border-slate-800 bg-surface/80 backdrop-blur-md sticky top-0 z-50 px-4 h-20 flex items-center justify-between">
+        <button onClick={() => navigate(-1)} className="flex items-center text-slate-400 hover:text-white transition-all font-black uppercase text-[10px] tracking-[0.3em] group">
+          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Voltar
+        </button>
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-400" />
+          <span className="text-[10px] font-black tracking-[0.4em] text-slate-500 uppercase italic">Intelligence Report v2.0</span>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 mt-8">
-        {/* --- CABEÇALHO --- */}
-        <div className="bg-surface border border-slate-700 rounded-3xl p-8 shadow-2xl mb-8 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-700">
-            <Globe className="w-48 h-48" />
-          </div>
+      <main className="max-w-6xl mx-auto px-4 mt-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           
-          <div className="flex flex-col md:flex-row justify-between items-start gap-6 relative z-10">
-            <div className="flex-1">
-              <h1 className="text-4xl font-black text-white mb-4 tracking-tighter leading-tight">
-                {lead.displayName.text}
-              </h1>
-              <div className="flex items-center text-slate-400 mb-6 text-sm">
-                <MapPin className="w-4 h-4 mr-2 text-primary shrink-0" /> {lead.formattedAddress}
-              </div>
-              
-              <div className="flex flex-wrap gap-3">
-                {lead.rating && (
-                  <div className="flex items-center bg-yellow-500/10 text-yellow-500 px-4 py-2 rounded-xl border border-yellow-500/20 text-sm font-bold shadow-sm">
-                    <Star className="w-4 h-4 mr-2 fill-current" />
-                    <span>{lead.rating}</span>
-                    <span className="opacity-40 ml-2 font-medium">({lead.userRatingCount} avaliações)</span>
+          <div className="lg:col-span-2 space-y-10">
+            {/* HERO CARD & DIAGNÓSTICO DE DOR */}
+            <div className="bg-surface border border-slate-700/50 rounded-[3rem] p-10 shadow-3xl relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2" style={{ backgroundColor: pColor }}></div>
+               
+               <h1 className="text-6xl font-black text-white mb-4 tracking-tighter leading-none italic uppercase relative z-10">
+                 {lead.displayName.text}
+               </h1>
+               
+               <div className="flex items-center text-slate-400 mb-10 text-sm font-medium opacity-70">
+                 <MapPin className="w-4 h-4 mr-2" style={{ color: pColor }} /> {lead.formattedAddress}
+               </div>
+
+               <div className="p-8 bg-red-500/5 border-l-8 border-red-500 rounded-r-[2rem] relative z-10 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-red-500/20 rounded-lg"><AlertCircle className="w-5 h-5 text-red-500" /></div>
+                    <span className="text-[12px] font-black text-red-500 uppercase tracking-[0.3em]">Diagnóstico de Perda de Lucro</span>
                   </div>
-                )}
-                <a 
-                  href={googleMapsUrl} 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="flex items-center bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-xl border border-emerald-500/20 text-sm font-bold hover:bg-emerald-500/20 transition-all active:scale-95 shadow-sm"
-                >
-                  <MapPin className="w-4 h-4 mr-2" /> Google Maps
-                </a>
-              </div>
+                  <p className="text-xl text-slate-100 font-medium italic leading-relaxed">
+                    {analysis?.aiData?.mainPainPoint ? `"${analysis.aiData.mainPainPoint}"` : "Analisando falhas de conversão no site atual..."}
+                  </p>
+               </div>
             </div>
 
-            <Badge 
-              variant={analysis.status === 'NO_WEBSITE' ? 'danger' : analysis.status === 'MODERN_SITE' ? 'success' : 'warning'}
-              className="text-xs px-6 py-3 shadow-2xl uppercase font-black tracking-widest border-2"
-            >
-              {analysis.status === 'NO_WEBSITE' ? 'Oportunidade Máxima' : analysis.status === 'MODERN_SITE' ? 'Site Operacional' : 'Necessita Melhoria'}
-            </Badge>
-          </div>
+            {/* BRANDING & DESIGN STRATEGY */}
+            <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl">
+              <div className="flex items-center gap-4 mb-12 border-b border-slate-800 pb-8">
+                <div className="p-4 bg-primary/10 rounded-2xl" style={{ backgroundColor: `${pColor}15` }}>
+                  <Palette className="w-8 h-8" style={{ color: pColor }} />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Identidade Sugerida</h2>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Manual Visual Consultivo</p>
+                </div>
+              </div>
 
-          {/* Renderiza o termômetro aqui */}
-          {renderThermometer()}
-        </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="space-y-10">
+                  {/* PALETA DE CORES */}
+                  <div className="flex items-end gap-6">
+                    <div className="space-y-3">
+                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Base</p>
+                       <div className="w-24 h-24 rounded-[2.5rem] shadow-2xl border-4 border-white/10" style={{ backgroundColor: pColor }}></div>
+                       <p className="text-xs font-mono font-black text-white text-center uppercase">{pColor}</p>
+                    </div>
+                    <div className="space-y-3">
+                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Destaque</p>
+                       <div className="w-16 h-16 rounded-[1.8rem] shadow-xl border-2 border-white/10" style={{ backgroundColor: sColor }}></div>
+                       <p className="text-[10px] font-mono font-bold text-slate-400 text-center uppercase tracking-tighter">{sColor}</p>
+                    </div>
+                  </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* --- DIAGNÓSTICO TÉCNICO --- */}
-          <div className="md:col-span-2 space-y-8">
-            <section>
-              <h2 className="text-xl font-black text-white mb-6 flex items-center gap-3">
-                <div className="p-2 bg-primary/20 rounded-lg"><Globe className="w-5 h-5 text-primary" /></div>
-                Diagnóstico Web
-              </h2>
-              
-              <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-8 space-y-6">
-                <div className="p-5 bg-background border border-slate-700/50 rounded-xl shadow-inner group">
-                  <p className="text-[10px] font-black text-slate-500 uppercase mb-3 tracking-widest">URL Cadastrada:</p>
-                  {lead.websiteUri ? (
-                    <a 
-                      href={lead.websiteUri} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="text-primary font-mono text-base break-all flex items-center gap-3 hover:text-blue-400 transition-colors"
-                    >
-                      {lead.websiteUri} <ExternalLink className="w-4 h-4 flex-shrink-0" />
-                    </a>
-                  ) : (
-                    <span className="text-red-400/80 text-sm font-mono flex items-center gap-2 italic">
-                      <AlertCircle className="w-4 h-4 shrink-0" /> Sem website próprio detectado no Google.
-                    </span>
-                  )}
+                  {/* TIPOGRAFIA */}
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50">
+                        <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Títulos</span></div>
+                        <p className="text-sm font-black text-white truncate">{ds?.typography?.heading || 'Montserrat'}</p>
+                     </div>
+                     <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50">
+                        <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Corpo</span></div>
+                        <p className="text-sm font-black text-white truncate">{ds?.typography?.body || 'Inter'}</p>
+                     </div>
+                  </div>
                 </div>
 
-                <div className="grid gap-4">
-                  <div className="flex items-center justify-between p-5 bg-surface/40 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl ${analysis.isSecure ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-                        <ShieldAlert className={`w-6 h-6 ${analysis.isSecure ? 'text-emerald-400' : 'text-red-400'}`} />
+                <div className="space-y-6">
+                   <div className="p-6 bg-background/40 rounded-[2rem] border border-slate-800">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Conceito do Design:</p>
+                      <p className="text-sm text-slate-300 italic font-medium leading-relaxed">
+                        "{ds?.designReasoning || 'Cores e formas selecionadas para elevar a percepção de valor da marca.'}"
+                      </p>
+                      <div className="mt-6 pt-6 border-t border-slate-800">
+                        <DetailRow label="Estilo de Design" value={ds?.style || 'Moderno/Imersivo'} />
+                        {ds?.referenceSite && (
+                          <a href={ds.referenceSite} target="_blank" className="mt-4 flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all">
+                             <ExternalLink className="w-3 h-3" /> Ver Referência de Estilo
+                          </a>
+                        )}
                       </div>
-                      <div>
-                        <p className="font-bold text-white text-sm">Segurança SSL</p>
-                        <p className="text-xs text-slate-500 font-medium">{analysis.isSecure ? 'Certificado válido' : 'Protocolo desprotegido'}</p>
-                      </div>
-                    </div>
-                    <Badge variant={analysis.isSecure ? 'success' : 'danger'} className="font-black px-4">{analysis.isSecure ? 'OK' : 'FALHA'}</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-5 bg-surface/40 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl ${analysis.isResponsive ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-                        <Smartphone className={`w-6 h-6 ${analysis.isResponsive ? 'text-emerald-400' : 'text-red-400'}`} />
-                      </div>
-                      <div>
-                        <p className="font-bold text-white text-sm">Responsividade</p>
-                        <p className="text-xs text-slate-500 font-medium">{analysis.isResponsive ? 'Otimizado para Mobile' : 'Layout estático (Desktop only)'}</p>
-                      </div>
-                    </div>
-                    <Badge variant={analysis.isResponsive ? 'success' : 'danger'} className="font-black px-4">{analysis.isResponsive ? 'OK' : 'FALHA'}</Badge>
-                  </div>
+                   </div>
                 </div>
               </div>
             </section>
           </div>
 
-          {/* --- CANAIS DE CONTATO --- */}
-          <div className="space-y-6">
-            <div className="bg-surface border border-slate-700 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase mb-6 tracking-[0.2em] border-b border-slate-800 pb-4">
-                Dados de Prospecção
-              </h3>
-              <ul className="space-y-8">
-                {lead.internationalPhoneNumber && (
-                  <li className="flex items-start gap-4">
-                    <div className="p-3 bg-primary/10 rounded-xl text-primary">
-                      <Phone className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="block text-[10px] text-slate-500 uppercase font-black mb-1">Contato Direto</span>
-                      <span className="text-sm font-mono text-white select-all font-bold tracking-tight">{lead.internationalPhoneNumber}</span>
-                    </div>
-                  </li>
-                )}
+          {/* SIDEBAR DE CONTATO E AÇÃO */}
+          <div className="space-y-8">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="w-full text-white font-black py-8 rounded-[2.5rem] shadow-2xl transition-all flex flex-col items-center justify-center gap-2 active:scale-95 group"
+              style={{ backgroundColor: pColor }}
+            >
+              <span className="text-2xl uppercase italic tracking-tighter flex items-center gap-3">
+                Enviar Proposta <ExternalLink className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+              </span>
+              <span className="text-[10px] opacity-70 font-bold uppercase tracking-[0.3em]">Baseada no Novo Branding</span>
+            </button>
 
-                <li className="flex items-start gap-4">
-                  <div className="p-3 bg-primary/10 rounded-xl text-primary">
-                    <Mail className="w-5 h-5" />
-                  </div>
-                  <div className="overflow-hidden w-full">
-                    <span className="block text-[10px] text-slate-500 uppercase font-black mb-1 flex items-center gap-2">
-                      E-mails Encontrados
-                      <span className="bg-primary/20 text-primary text-[8px] px-1 rounded-sm uppercase tracking-tighter">Verified</span>
-                    </span>
-                    
-                    {analysis.emails && analysis.emails.length > 0 ? (
-                      <div className="space-y-3 mt-2">
-                        {analysis.emails.map(email => (
-                          <span key={email} className="block text-sm font-mono text-blue-300 truncate select-all font-medium border-b border-slate-800 pb-1">
-                            {email}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-600 italic font-medium">Nenhum e-mail detectado.</span>
-                    )}
-                  </div>
-                </li>
+            <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-xl">
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-10 border-b border-slate-800 pb-4">Business Intelligence</h3>
+              <ul className="space-y-10">
+                <ContactRow icon={<Phone />} label="Fone / WhatsApp" value={lead.internationalPhoneNumber || 'Privado'} />
+                <ContactRow 
+                  icon={<Mail />} 
+                  label="E-mails Minerados" 
+                  value={analysis?.emails || []} 
+                  isList 
+                />
               </ul>
             </div>
 
-            {analysis.socialLinks && analysis.socialLinks.length > 0 && (
-              <div className="bg-surface border border-slate-700 rounded-3xl p-6 shadow-xl">
-                <h3 className="text-[10px] font-black text-slate-500 uppercase mb-6 tracking-[0.2em] border-b border-slate-800 pb-4">Canais Sociais</h3>
-                <div className="flex flex-wrap gap-4 justify-center">
-                  {analysis.socialLinks.map((social, idx) => (
-                    <a 
-                      key={idx} 
-                      href={social.url} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="p-4 bg-background border border-slate-600 rounded-2xl hover:border-primary hover:bg-slate-800 hover:-translate-y-1 transition-all shadow-lg active:scale-95"
-                    >
-                      {getSocialIcon(social.network)}
+            {analysis?.socialLinks && analysis.socialLinks.length > 0 && (
+               <div className="flex justify-center gap-4 p-4 bg-slate-900/40 rounded-[2rem] border border-slate-800">
+                  {analysis.socialLinks.map((s, i) => (
+                    <a key={i} href={s.url} target="_blank" className="p-4 bg-surface border border-slate-700 rounded-2xl hover:border-primary transition-all">
+                      {getSocialIcon(s.network)}
                     </a>
                   ))}
-                </div>
-              </div>
+               </div>
             )}
-            
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="w-full bg-primary hover:bg-blue-600 text-white font-black py-6 rounded-2xl shadow-[0_10px_30px_rgba(59,130,246,0.3)] transition-all flex items-center justify-center gap-3 active:scale-95 text-lg uppercase tracking-wider group"
-            >
-              Gerar Proposta
-              <ExternalLink className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-            </button>
           </div>
         </div>
       </main>
 
-      <ProposalModal 
-        lead={lead} 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-      />
+      <ProposalModal lead={lead} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
+}
+
+// COMPONENTES AUXILIARES
+function DetailRow({ label, value }: any) {
+  return (
+    <div className="flex justify-between items-center py-2">
+      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
+      <span className="text-xs text-white font-black uppercase tracking-tighter">{value}</span>
+    </div>
+  );
+}
+
+function ContactRow({ icon, label, value, isList }: any) {
+  return (
+    <li className="flex gap-5">
+      <div className="p-4 bg-primary/10 rounded-2xl text-primary h-fit">{icon}</div>
+      <div className="overflow-hidden">
+        <span className="block text-[10px] text-slate-500 font-black uppercase mb-2 tracking-widest">{label}</span>
+        {isList && Array.isArray(value) ? (
+          <div className="space-y-3">
+            {value.length > 0 ? value.map((e: string) => (
+              <span key={e} className="block text-xs font-mono text-blue-300 truncate select-all font-bold border-b border-slate-800 pb-1">{e}</span>
+            )) : <span className="text-xs italic text-slate-600">Não localizado</span>}
+          </div>
+        ) : <span className="text-sm font-black text-white break-words uppercase tracking-tight">{value}</span>}
+      </div>
+    </li>
+  );
+}
+
+function getSocialIcon(network: string) {
+  switch (network.toLowerCase()) {
+    case 'facebook': return <Facebook className="w-5 h-5 text-blue-500" />;
+    case 'instagram': return <Instagram className="w-5 h-5 text-pink-500" />;
+    default: return <Share2 className="w-5 h-5 text-slate-400" />;
+  }
 }

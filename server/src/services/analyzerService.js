@@ -1,108 +1,118 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { EMAIL_REGEX, SOCIAL_PATTERNS, YEAR_REGEX } from '../utils/patterns.js';
+import { analyzeLeadWithAI } from './aiService.js';
 
 const THIRD_PARTY_DOMAINS = [
   'ifood.com.br', 'instagram.com', 'facebook.com', 'wa.me', 
   'whatsapp.com', 'deliverymaniac.com', 'goomer.app', 
   'menudino.com', 'ubereats.com', 'linktr.ee', 
-  'business.site', 'site.google.com'
+  'business.site', 'site.google.com', 'globo.com', 'uol.com.br',
+  'youtube.com', 'tiktok.com', 'yelp.com', 'tripadvisor.com'
 ];
 
 /**
- * Analisa o website e calcula o Score de Oportunidade (0-100)
- * Baseado em Saúde Técnica + Relevância do Negócio
+ * Analisa o website e integra Inteligência Artificial.
+ * Corrigido para garantir que a IA processe a estratégia mesmo sem site próprio.
  */
-export const analyzeWebsite = async (url, userRatingCount = 0, priceLevel = 1) => {
+export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0, priceLevel = 1) => {
+  const cleanUrl = url?.toLowerCase().trim() || '';
+  const isThirdParty = cleanUrl && THIRD_PARTY_DOMAINS.some(domain => cleanUrl.includes(domain));
+  const hasNoUrl = !cleanUrl;
+
   const result = {
-    url,
-    isSecure: url?.startsWith('https') || false,
+    url: cleanUrl,
+    isSecure: cleanUrl.startsWith('https'),
     isResponsive: false,
     copyrightYear: null,
     emails: [],
     socialLinks: [],
     opportunityScore: 0,
     status: 'UNKNOWN',
-    isThirdParty: false
+    isThirdParty: !!isThirdParty,
+    aiData: null
   };
 
-  // 1. Caso não tenha URL ou seja plataforma de terceiros
-  const isThirdParty = url && THIRD_PARTY_DOMAINS.some(domain => url.toLowerCase().includes(domain));
+  // --- LOGICA DE INTELIGÊNCIA UNIVERSAL ---
+  // Se não tem site ou é rede social, a IA analisa apenas o nome/nicho
+  // Se tem site próprio, fazemos o scraping antes para enviar o HTML para a IA
+  let htmlToAnalyze = "Empresa sem website próprio. Analise baseada no nome e nicho de mercado.";
 
-  if (!url || isThirdParty) {
-    result.status = 'NO_WEBSITE';
-    result.isThirdParty = !!isThirdParty;
-    
-    // Algoritmo: Se não tem site, começa com 60 pontos (dor alta)
-    let score = 60;
-    
-    // Adiciona bônus por Prova Social (Poder de compra)
-    if (userRatingCount > 500) score += 30;
-    else if (userRatingCount > 100) score += 20;
-    else if (userRatingCount > 20) score += 10;
+  if (!hasNoUrl && !isThirdParty) {
+    try {
+      console.log(`🌐 [SCRAPING] Acessando site próprio: ${cleanUrl}`);
+      const { data: html } = await axios.get(cleanUrl, {
+        timeout: 10000,
+        headers: { 
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+        }
+      });
+      
+      const $ = cheerio.load(html);
+      htmlToAnalyze = $.html(); // Enviamos o HTML completo para a Groq
 
-    // Adiciona bônus por ticket médio (Price Level)
-    if (priceLevel >= 3) score += 10;
-
-    result.opportunityScore = Math.min(score, 100);
-    return result;
+      // Extração técnica básica via Cheerio
+      const textToScan = $('body').text();
+      const matches = textToScan.match(EMAIL_REGEX);
+      if (matches) matches.forEach(e => result.emails.push(e.toLowerCase()));
+      if ($('meta[name="viewport"]').length > 0) result.isResponsive = true;
+      
+      $('a[href]').each((_, el) => {
+        const href = $(el).attr('href');
+        if (!href) return;
+        for (const [network, regex] of Object.entries(SOCIAL_PATTERNS)) {
+          if (regex.test(href)) result.socialLinks.push({ network, url: href });
+        }
+      });
+    } catch (error) {
+      console.error(`⚠️ [SCRAPING] Erro ao acessar ${cleanUrl}: ${error.message}`);
+      result.status = 'ERROR_ACCESSING';
+    }
   }
 
-  // 2. Scraping para sites próprios
+  // --- CHAMADA IA GROQ (Sempre executada) ---
+  // Garante que mesmo "Sem Site" tenha Dor de Conversão e Paleta de Cores
   try {
-    const { data: html } = await axios.get(url, {
-      timeout: 8000,
-      headers: { 'User-Agent': 'Mozilla/5.0...' }
-    });
-
-    const $ = cheerio.load(html);
-    const textToScan = $('body').text();
-    const foundEmails = new Set();
-
-    // Extração de E-mails
-    $('a[href^="mailto:"]').each((_, el) => {
-      const email = $(el).attr('href').replace(/mailto:/i, '').split('?')[0].trim();
-      if (email) foundEmails.add(email.toLowerCase());
-    });
-    const matches = textToScan.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
-    if (matches) matches.forEach(email => foundEmails.add(email.toLowerCase()));
-    result.emails = Array.from(foundEmails);
-
-    // Redes Sociais
-    $('a[href]').each((_, el) => {
-      const href = $(el).attr('href');
-      if (!href) return;
-      for (const [network, regex] of Object.entries(SOCIAL_PATTERNS)) {
-        if (regex.test(href)) result.socialLinks.push({ network, url: href });
-      }
-    });
-
-    // Análise Técnica
-    if ($('meta[name="viewport"]').length > 0) result.isResponsive = true;
-    const yearMatch = textToScan.match(YEAR_REGEX);
-    if (yearMatch) result.copyrightYear = parseInt(yearMatch[1]);
-
-    // --- ALGORITMO DE SCORING (Lead Scoring 2.0) ---
-    let score = 0;
-
-    // Saúde Técnica (Máx 60)
-    if (!result.isSecure) score += 20;
-    if (!result.isResponsive) score += 30;
-    const currentYear = new Date().getFullYear();
-    if (result.copyrightYear && result.copyrightYear < currentYear) score += 10;
-
-    // Potencial Financeiro / Relevância (Máx 40)
-    if (userRatingCount > 100) score += 25;
-    else if (userRatingCount > 30) score += 15;
+    const aiInsight = await analyzeLeadWithAI(htmlToAnalyze, businessName);
     
-    if (priceLevel >= 2) score += 15;
-
-    result.opportunityScore = Math.min(score, 100);
-    result.status = result.opportunityScore >= 50 ? 'HIGH_OPPORTUNITY' : 'MODERN_SITE';
-
-    return result;
-
-  } catch (error) {
-    return { ...result, status: 'ERROR_ACCESSING', opportunityScore: 50 };
+    if (aiInsight) {
+      console.log(`✨ [IA] Inteligência gerada com sucesso para: ${businessName}`);
+      result.aiData = {
+        ownerName: aiInsight.ownerName || 'Responsável',
+        mainPainPoint: aiInsight.mainPainPoint || 'Falta de presença digital otimizada',
+        featuredItem: aiInsight.featuredItem || 'Serviços Gerais',
+        designStrategy: aiInsight.designStrategy // Cores vêm aqui
+      };
+      
+      if (aiInsight.emails && Array.isArray(aiInsight.emails)) {
+        result.emails = [...new Set([...result.emails, ...aiInsight.emails])];
+      }
+    }
+  } catch (aiError) {
+    console.error(`❌ [IA] Erro na análise da Groq:`, aiError.message);
   }
+
+  // --- FINALIZAÇÃO DO STATUS E SCORE ---
+  if (hasNoUrl || isThirdParty) {
+    result.status = 'NO_WEBSITE';
+    let score = 70; // Score alto pois não tem site próprio
+    if (userRatingCount > 100) score += 15;
+    if (priceLevel >= 2) score += 15;
+    result.opportunityScore = Math.min(score, 100);
+    if (isThirdParty) result.socialLinks.push({ network: 'platform', url: cleanUrl });
+  } else {
+    // Cálculo técnico para sites próprios
+    let techScore = 0;
+    if (!result.isSecure) techScore += 25;
+    if (!result.isResponsive) techScore += 35;
+    if (userRatingCount > 50) techScore += 20;
+    if (result.emails.length === 0) techScore += 20;
+    
+    result.opportunityScore = Math.min(techScore, 100);
+    if (result.status !== 'ERROR_ACCESSING') {
+        result.status = result.opportunityScore >= 50 ? 'HIGH_OPPORTUNITY' : 'MODERN_SITE';
+    }
+  }
+
+  return result;
 };

@@ -1,30 +1,32 @@
 import googleIt from 'google-it';
-import { EMAIL_REGEX } from '../utils/patterns.js';
 
 export const findEmailViaSearch = async (businessName, location) => {
   try {
-    const searchTerm = `${businessName} ${location} email contato`;
-    console.log(`🔎 Fazendo busca profunda no Google para: ${searchTerm}`);
+    // Query mais agressiva incluindo o termo "contato@"
+    const query = `"${businessName}" ${location} "contato@" OR "email" OR "e-mail"`;
+    console.log(`🔎 [SEARCH] Pesquisando: ${query}`);
+
+    const results = await googleIt({ query, limit: 5, disableConsole: true });
+    const emails = new Set();
     
-    const results = await googleIt({ 
-      query: searchTerm, 
-      limit: 5,
-      disableConsole: true 
-    });
+    // Regex melhorada
+    const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 
-    const foundEmails = new Set();
-
-    results.forEach(result => {
-      // Procura e-mails no snippet (resumo) do Google
-      const matches = result.snippet.match(EMAIL_REGEX);
+    results.forEach((res) => {
+      // Escaneamos o título e o snippet
+      const fullText = `${res.title} ${res.snippet}`;
+      const matches = fullText.match(EMAIL_REGEX);
       if (matches) {
-        matches.forEach(email => foundEmails.add(email.toLowerCase()));
+        matches.forEach(e => emails.add(e.toLowerCase()));
       }
     });
 
-    return Array.from(foundEmails);
+    const found = Array.from(emails);
+    if (found.length > 0) {
+      console.log(`✨ [SEARCH] E-mails encontrados: ${found.join(', ')}`);
+    }
+    return found;
   } catch (error) {
-    console.error('Erro na busca profunda:', error.message);
     return [];
   }
 };
