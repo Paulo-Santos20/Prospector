@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { getLeads } from './controllers/leadsController.js';
+import { getLeads, getSocials } from './controllers/leadsController.js';
 import { getGlobalStats } from './controllers/statsController.js';
 import { saveToCRM, getCRMLeads, updateCRMLead } from './controllers/crmController.js'; 
 
