@@ -1,4 +1,4 @@
-import { Globe, MapPin, Phone, ShieldAlert, Smartphone, Calendar, Mail, ExternalLink } from "lucide-react";
+import { Globe, MapPin, ShieldAlert, Smartphone, Calendar, ExternalLink } from "lucide-react";
 // O SEGREDO ESTÁ AQUI: A palavra "type" foi adicionada
 import { type Lead } from "../features/search/services/searchService";
 import { Badge } from "../components/ui/Badge";
