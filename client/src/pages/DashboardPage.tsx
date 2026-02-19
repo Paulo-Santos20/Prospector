@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
-  Search, MapPin, Loader2, Sparkles, AlertCircle, 
+  Loader2, Sparkles, AlertCircle, 
   Globe, ShieldAlert, Users, Send, Target, TrendingUp 
 } from 'lucide-react';
 

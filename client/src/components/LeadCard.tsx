@@ -1,6 +1,6 @@
 import { Globe, MapPin, Phone, ShieldAlert, Smartphone, Calendar, Mail } from "lucide-react";
-import { Lead } from "../../search/services/searchService";
-import { Badge } from "../../../components/ui/Badge";
+import { Lead } from "../features/search/services/searchService";
+import { Badge } from "../components/ui/Badge";
 
 interface LeadCardProps {
   lead: Lead;
