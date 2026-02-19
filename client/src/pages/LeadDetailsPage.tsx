@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Phone, Mail, Share2, Facebook, Instagram, ExternalLink, AlertCircle, Sparkles, Palette, Type, Star } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, Facebook, Instagram, AlertCircle, Sparkles,Star } from 'lucide-react';
 import { type Lead } from '../features/search/services/searchService';
 import { ProposalModal } from '../features/leads/components/ProposalModal';
 import { saveLeadToCRM } from '../features/crm/services/crmService';
