@@ -4,8 +4,8 @@ import * as cheerio from 'cheerio';
 export const findSocialLinks = async (companyName, address) => {
   try {
     const city = address ? address.split(',').slice(-2).join(' ') : '';
-    // Query expandida para as 3 plataformas
-    const query = `"${companyName}" ${city} (site:instagram.com OR site:facebook.com OR site:ifood.com.br)`;
+    // Simplificamos a query para o buscador não se confundir
+    const query = `${companyName} ${city} instagram facebook ifood`;
     const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
 
     const response = await axios.get(url, {
@@ -18,28 +18,30 @@ export const findSocialLinks = async (companyName, address) => {
     const $ = cheerio.load(response.data);
     const links = [];
 
-    $('.result__url').each((i, el) => {
-      const linkText = $(el).text().trim().toLowerCase();
+    // Buscamos em todos os links de resultados (classe .result__a)
+    $('a.result__a').each((i, el) => {
+      const href = $(el).attr('href') || '';
+      const url = href.toLowerCase();
       
       // Captura Instagram
-      if (linkText.includes('instagram.com') && !linkText.includes('/p/') && !links.find(l => l.network === 'instagram')) {
-        links.push({ network: 'instagram', url: `https://${linkText.replace(/\s/g, '')}` });
+      if (url.includes('instagram.com') && !url.includes('/p/') && !url.includes('/explore/') && !links.find(l => l.network === 'instagram')) {
+        links.push({ network: 'instagram', url: href });
       }
       
       // Captura Facebook
-      if (linkText.includes('facebook.com') && !linkText.includes('/sharer') && !links.find(l => l.network === 'facebook')) {
-        links.push({ network: 'facebook', url: `https://${linkText.replace(/\s/g, '')}` });
+      if (url.includes('facebook.com') && !url.includes('/sharer') && !links.find(l => l.network === 'facebook')) {
+        links.push({ network: 'facebook', url: href });
       }
       
       // Captura iFood
-      if (linkText.includes('ifood.com.br') && !links.find(l => l.network === 'ifood')) {
-        links.push({ network: 'ifood', url: `https://${linkText.replace(/\s/g, '')}` });
+      if (url.includes('ifood.com.br') && !links.find(l => l.network === 'ifood')) {
+        links.push({ network: 'ifood', url: href });
       }
     });
 
+    console.log(`🔎 [SCRAPER] Resultados para ${companyName}:`, links.map(l => l.network));
     return links;
   } catch (error) {
-    console.error('Erro ao buscar redes sociais:', error.message);
     return [];
   }
 };
