@@ -4,7 +4,7 @@ import admin from 'firebase-admin';
 import { searchPlaces } from '../services/googleService.js';
 import { analyzeWebsite } from '../services/analyzerService.js';
 import { findEmailViaSearch } from '../services/googleSearchService.js';
-import { findInstagramProfile } from '../services/socialScraper.js';
+import { findSocialLinks } from '../services/socialScraper.js'; // Atualizado para buscar tudo
 
 const limit = pLimit(5);
 
@@ -29,7 +29,7 @@ export const getLeads = async (req, res) => {
               }
             }
 
-            // --- IA + SCRAPING + REDES SOCIAIS ---
+            // --- PROCESSAMENTO: IA + SCRAPING ---
             let analysis = await analyzeWebsite(
               place.websiteUri, 
               place.displayName.text, 
@@ -37,24 +37,31 @@ export const getLeads = async (req, res) => {
               place.priceLevel
             );
 
-            // Busca Instagram se não achou no site ou se está sem site
-            const instaUrl = await findInstagramProfile(place.displayName.text, location);
-            if (instaUrl) {
+            // --- BUSCA DE REDES SOCIAIS E MARKETPLACES (IG, FB, IFOOD) ---
+            const extraLinks = await findSocialLinks(place.displayName.text, location);
+            if (extraLinks.length > 0) {
               if (!analysis.socialLinks) analysis.socialLinks = [];
-              const exists = analysis.socialLinks.some(s => s.network === 'instagram');
-              if (!exists) analysis.socialLinks.push({ network: 'instagram', url: instaUrl });
+              
+              extraLinks.forEach(newLink => {
+                const exists = analysis.socialLinks.some(s => s.network === newLink.network);
+                if (!exists) analysis.socialLinks.push(newLink);
+              });
             }
 
-            // Tenta buscar e-mail externamente
+            // Busca e-mail externamente se necessário
             if (!analysis.emails || analysis.emails.length === 0) {
               analysis.emails = await findEmailViaSearch(place.displayName.text, location);
             }
 
             const finalLead = { ...place, analysis };
-            await leadRef.set({ ...finalLead, updatedAt: admin.firestore.Timestamp.now() }, { merge: true });
+            await leadRef.set({ 
+              ...finalLead, 
+              updatedAt: admin.firestore.Timestamp.now() 
+            }, { merge: true });
 
             return finalLead;
           } catch (err) {
+            console.error(`Erro no lead ${place.id}:`, err);
             return { ...place, analysis: { status: 'ERROR', emails: [] } };
           }
         })

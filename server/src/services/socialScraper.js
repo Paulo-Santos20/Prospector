@@ -1,42 +1,45 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-export const findInstagramProfile = async (companyName, address) => {
+export const findSocialLinks = async (companyName, address) => {
   try {
-    // Pega só a cidade/estado para a busca não ficar confusa
     const city = address ? address.split(',').slice(-2).join(' ') : '';
-    
-    // Cria uma busca "Dorking" (Força o buscador a achar APENAS perfis do Instagram)
-    const query = `site:instagram.com "${companyName}" ${city}`;
+    // Query expandida para as 3 plataformas
+    const query = `"${companyName}" ${city} (site:instagram.com OR site:facebook.com OR site:ifood.com.br)`;
     const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
 
-    // Disfarça a requisição para o servidor achar que é um navegador real
     const response = await axios.get(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
       },
-      timeout: 5000 // Cancela se demorar mais de 5s para não travar o seu site
+      timeout: 5000
     });
 
     const $ = cheerio.load(response.data);
-    let instaLink = null;
+    const links = [];
 
-    // Vasculha os resultados
     $('.result__url').each((i, el) => {
-      const linkText = $(el).text().trim();
+      const linkText = $(el).text().trim().toLowerCase();
       
-      // Se achou um link do insta que não seja página de hashtag (/explore) ou post específico (/p/)
-      if (linkText.includes('instagram.com') && !linkText.includes('/explore/') && !linkText.includes('/p/')) {
-        // Limpa o link para entregar a URL perfeita
-        instaLink = `https://${linkText.replace(/ /g, '')}`;
-        return false; // Para a busca no primeiro resultado válido (o mais relevante)
+      // Captura Instagram
+      if (linkText.includes('instagram.com') && !linkText.includes('/p/') && !links.find(l => l.network === 'instagram')) {
+        links.push({ network: 'instagram', url: `https://${linkText.replace(/\s/g, '')}` });
+      }
+      
+      // Captura Facebook
+      if (linkText.includes('facebook.com') && !linkText.includes('/sharer') && !links.find(l => l.network === 'facebook')) {
+        links.push({ network: 'facebook', url: `https://${linkText.replace(/\s/g, '')}` });
+      }
+      
+      // Captura iFood
+      if (linkText.includes('ifood.com.br') && !links.find(l => l.network === 'ifood')) {
+        links.push({ network: 'ifood', url: `https://${linkText.replace(/\s/g, '')}` });
       }
     });
 
-    return instaLink;
+    return links;
   } catch (error) {
-    console.warn(`⚠️ Aviso: Falha ao buscar Instagram de ${companyName} -`, error.message);
-    return null;
+    console.error('Erro ao buscar redes sociais:', error.message);
+    return [];
   }
 };
