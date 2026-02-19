@@ -1,62 +1,78 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-export const findSocialLinks = async (companyName, address) => {
+// Aumentamos para 15 segundos para evitar o erro de timeout em conexões lentas
+const TIMEOUT_MS = 15000; 
+
+const AXIOS_CONFIG = {
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept-Language': 'pt-BR,pt;q=0.9'
+  },
+  timeout: TIMEOUT_MS
+};
+
+// MOTOR 1: GOOGLE (Prioridade por precisão)
+const searchGoogle = async (query) => {
   try {
-    const city = address ? address.split(',').slice(-2).join(' ') : '';
-    // Query ultra-refinada para o Google
-    const query = `${companyName} ${city} instagram facebook ifood`;
-    
-    // Utilizamos a versão "gbv=1" do Google (versão leve sem JS, ideal para scraping)
-    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&gbv=1&lr=lang_pt`;
-
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8',
-        'Accept': 'text/html,application/xhtml+xml,xml;q=0.9,image/avif,webp,*/*;q=0.8'
-      },
-      timeout: 7000
-    });
-
-    const $ = cheerio.load(response.data);
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&gbv=1`;
+    const { data } = await axios.get(url, AXIOS_CONFIG);
+    const $ = cheerio.load(data);
     const links = [];
-
-    // No Google Lite, os links ficam dentro de tags <a> simples
     $('a').each((i, el) => {
       let href = $(el).attr('href') || '';
-      
-      // O Google mascara os links externos: /url?q=https://instagram.com/perfil
       if (href.startsWith('/url?q=')) {
-        href = href.split('/url?q=')[1].split('&')[0];
-        href = decodeURIComponent(href);
-      }
-
-      const urlLower = href.toLowerCase();
-
-      // Regra para Instagram
-      if (urlLower.includes('instagram.com/') && !urlLower.includes('/p/') && !urlLower.includes('/explore/')) {
-        if (!links.find(l => l.network === 'instagram')) {
-          links.push({ network: 'instagram', url: href.split('?')[0] });
-        }
-      }
-      
-      // Regra para Facebook
-      if (urlLower.includes('facebook.com/') && !urlLower.includes('/sharer') && !urlLower.includes('/pages/')) {
-        if (!links.find(l => l.network === 'facebook')) {
-          links.push({ network: 'facebook', url: href.split('?')[0] });
-        }
-      }
-
-      // Regra para iFood
-      if (urlLower.includes('ifood.com.br/') && !links.find(l => l.network === 'ifood')) {
-        links.push({ network: 'ifood', url: href.split('?')[0] });
+        links.push(decodeURIComponent(href.split('/url?q=')[1].split('&')[0]));
       }
     });
-
     return links;
-  } catch (error) {
-    console.error(`⚠️ Erro no Google Scraper para ${companyName}:`, error.message);
+  } catch (err) {
+    console.log(`⚠️ Google falhou/bloqueou: ${err.message}`);
     return [];
   }
+};
+
+// MOTOR 2: DUCKDUCKGO (Reserva caso o Google dê timeout ou bloqueie)
+const searchDuckDuckGo = async (query) => {
+  try {
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    const { data } = await axios.get(url, AXIOS_CONFIG);
+    const $ = cheerio.load(data);
+    const links = [];
+    $('.result__a').each((i, el) => links.push($(el).attr('href')));
+    return links;
+  } catch (err) {
+    console.log(`⚠️ DuckDuckGo falhou: ${err.message}`);
+    return [];
+  }
+};
+
+export const findSocialLinks = async (companyName, address) => {
+  const city = address ? address.split(',').slice(-2).join(' ') : '';
+  const query = `"${companyName}" ${city} instagram facebook ifood`;
+  
+  // TENTATIVA 1: GOOGLE
+  let rawLinks = await searchGoogle(query);
+
+  // TENTATIVA 2: Se o Google não trouxe nada (ou deu timeout), tenta o DuckDuckGo
+  if (rawLinks.length === 0) {
+    console.log(`🔄 Google falhou para "${companyName}", tentando DuckDuckGo...`);
+    rawLinks = await searchDuckDuckGo(query);
+  }
+
+  const foundLinks = [];
+  const addLink = (network, url) => {
+    if (!foundLinks.find(l => l.network === network)) {
+      foundLinks.push({ network, url: url.split('?')[0] });
+    }
+  };
+
+  rawLinks.forEach(link => {
+    const l = link.toLowerCase();
+    if (l.includes('instagram.com/') && !l.includes('/p/') && !l.includes('/explore/')) addLink('instagram', link);
+    if (l.includes('facebook.com/') && !l.includes('/sharer')) addLink('facebook', link);
+    if (l.includes('ifood.com.br/')) addLink('ifood', link);
+  });
+
+  return foundLinks;
 };

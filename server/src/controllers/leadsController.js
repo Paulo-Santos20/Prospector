@@ -4,14 +4,18 @@ import admin from 'firebase-admin';
 import { searchPlaces } from '../services/googleService.js';
 import { analyzeWebsite } from '../services/analyzerService.js';
 import { findEmailViaSearch } from '../services/googleSearchService.js';
-import { findSocialLinks } from '../services/socialScraper.js'; // O NOVO SERVIÇO
+import { findSocialLinks } from '../services/socialScraper.js';
 
-const limit = pLimit(3); // Reduzi para 3 para o Google não bloquear por excesso de requisições
+// Reduzido para 2 para garantir estabilidade e evitar timeouts coletivos
+const limit = pLimit(2);
 
 export const getLeads = async (req, res) => {
   try {
     const { niche, location } = req.body;
+    console.log(`🌐 Consultando Google Maps para: "${niche} em ${location}"`);
+    
     const rawLeads = await searchPlaces(niche, location);
+    console.log(`✅ Google retornou ${rawLeads.length} locais.`);
 
     const enrichedLeads = await Promise.all(
       rawLeads.map((place) => 
@@ -23,15 +27,18 @@ export const getLeads = async (req, res) => {
 
             if (doc.exists) {
               const data = doc.data();
-              if (data.updatedAt.toMillis() > cacheLimit && data.analysis?.aiData) {
+              if (data.updatedAt && data.updatedAt.toMillis() > cacheLimit && data.analysis?.aiData) {
+                console.log(`📦 [CACHE] ${place.displayName.text}`);
                 return { ...place, analysis: data.analysis };
               }
             }
 
-            // 1. Análise Base e IA
+            console.log(`🧪 [IA + SOCIAL] Processando: ${place.displayName.text}`);
+
+            // 1. Análise de Website e IA
             let analysis = await analyzeWebsite(place.websiteUri, place.displayName.text, place.userRatingCount, place.priceLevel);
 
-            // 2. BUSCA NO GOOGLE (Instagram, FB, iFood)
+            // 2. Busca Híbrida de Redes Sociais (Com timeout de 15s e Fallback)
             const socials = await findSocialLinks(place.displayName.text, location);
             if (socials.length > 0) {
               if (!analysis.socialLinks) analysis.socialLinks = [];
@@ -42,17 +49,23 @@ export const getLeads = async (req, res) => {
               });
             }
 
-            // 3. E-mails extras
+            // 3. Busca de E-mails
             if (!analysis.emails || analysis.emails.length === 0) {
               analysis.emails = await findEmailViaSearch(place.displayName.text, location);
             }
 
             const finalLead = { ...place, analysis };
-            await leadRef.set({ ...finalLead, updatedAt: admin.firestore.Timestamp.now() }, { merge: true });
+            
+            // Salva no Firebase
+            await leadRef.set({ 
+              ...finalLead, 
+              updatedAt: admin.firestore.Timestamp.now() 
+            }, { merge: true });
 
             return finalLead;
           } catch (err) {
-            return { ...place, analysis: { status: 'ERROR', emails: [] } };
+            console.error(`❌ Erro no lead ${place.displayName.text}:`, err.message);
+            return { ...place, analysis: { status: 'ERROR', details: [err.message] } };
           }
         })
       )
@@ -60,6 +73,7 @@ export const getLeads = async (req, res) => {
 
     res.json({ count: enrichedLeads.length, leads: enrichedLeads });
   } catch (error) {
-    res.status(500).json({ error: 'Erro geral' });
+    console.error("❌ Erro Geral:", error);
+    res.status(500).json({ error: 'Erro ao processar leads' });
   }
 };
