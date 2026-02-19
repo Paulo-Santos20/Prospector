@@ -1,8 +1,9 @@
-import { Globe, MapPin, ShieldAlert, Smartphone, Calendar, ExternalLink } from "lucide-react";
-// O SEGREDO ESTÁ AQUI: A palavra "type" foi adicionada
+import { Globe, MapPin, ShieldAlert, Smartphone, ExternalLink, Star } from "lucide-react";
 import { type Lead } from "../features/search/services/searchService";
-import { Badge } from "../components/ui/Badge";
+import { Badge } from "./ui/Badge";
 import { useNavigate } from "react-router-dom";
+import { saveLeadToCRM } from "../features/crm/services/crmService";
+import { useState } from "react";
 
 interface LeadCardProps {
   lead: Lead;
@@ -11,24 +12,27 @@ interface LeadCardProps {
 export const LeadCard = ({ lead }: LeadCardProps) => {
   const navigate = useNavigate();
   const { analysis } = lead;
+  const [isSaved, setIsSaved] = useState(false);
   
-  // Lógica para decidir a cor do card
   const getStatusColor = () => {
     if (analysis.status === 'NO_WEBSITE') return 'danger';
     if (analysis.status === 'HIGH_OPPORTUNITY' || analysis.status === 'MODERATE') return 'warning';
     return 'success';
   };
 
-  const getStatusLabel = () => {
-    if (analysis.status === 'NO_WEBSITE') return 'Sem Site';
-    if (analysis.status === 'HIGH_OPPORTUNITY') return 'Site Crítico';
-    if (analysis.status === 'MODERATE') return 'Site Antigo';
-    return 'Site Moderno';
-  };
-
-  // Função para navegar para a página de detalhes
   const handleCardClick = () => {
     navigate(`/lead/${lead.id}`, { state: { lead } });
+  };
+
+  // Função para Favoritar (Evita que o card seja clicado junto)
+  const handleSaveToCRM = async (e: React.MouseEvent) => {
+    e.stopPropagation(); 
+    try {
+      await saveLeadToCRM(lead);
+      setIsSaved(true);
+    } catch (error) {
+      console.error("Erro ao salvar lead", error);
+    }
   };
 
   return (
@@ -36,13 +40,20 @@ export const LeadCard = ({ lead }: LeadCardProps) => {
       onClick={handleCardClick}
       className="bg-surface border border-slate-700 rounded-lg p-5 hover:border-primary cursor-pointer transition-all hover:scale-[1.02] group shadow-lg h-full flex flex-col relative"
     >
-      {/* Indicador visual de clique */}
-      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-        <ExternalLink className="w-4 h-4 text-primary" />
+      <div className="absolute top-4 right-4 flex gap-2">
+        <button 
+          onClick={handleSaveToCRM}
+          className={`p-2 rounded-lg transition-all ${isSaved ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400 hover:text-amber-400 hover:bg-slate-700'}`}
+          title="Salvar no Kanban"
+        >
+          <Star className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+        </button>
+        <div className="p-2 opacity-0 group-hover:opacity-100 transition-opacity bg-primary/20 text-primary rounded-lg">
+          <ExternalLink className="w-4 h-4" />
+        </div>
       </div>
 
-      {/* Cabeçalho */}
-      <div className="flex justify-between items-start mb-4 pr-6">
+      <div className="flex justify-between items-start mb-4 pr-16">
         <div>
           <h3 className="text-lg font-semibold text-white group-hover:text-primary transition-colors line-clamp-1">
             {lead.displayName.text}
@@ -55,10 +66,9 @@ export const LeadCard = ({ lead }: LeadCardProps) => {
       </div>
       
       <div className="mb-4">
-        <Badge variant={getStatusColor()}>{getStatusLabel()}</Badge>
+        <Badge variant={getStatusColor()}>{analysis.status === 'NO_WEBSITE' ? 'Sem Site' : 'Site Analisado'}</Badge>
       </div>
 
-      {/* Métricas de Oportunidade */}
       <div className="space-y-2 mb-4 bg-background/50 p-3 rounded-md flex-grow">
         {analysis.status === 'NO_WEBSITE' ? (
            <p className="text-sm text-red-400 flex items-center font-medium">
@@ -72,16 +82,10 @@ export const LeadCard = ({ lead }: LeadCardProps) => {
              <div className={`flex items-center ${!analysis.isResponsive ? 'text-red-400 font-bold' : 'text-emerald-400'}`}>
                 <Smartphone className="w-3 h-3 mr-1" /> Mobile
              </div>
-             {analysis.copyrightYear && (
-               <div className={`flex items-center ${analysis.copyrightYear < 2023 ? 'text-amber-400' : 'text-slate-400'}`}>
-                 <Calendar className="w-3 h-3 mr-1" /> {analysis.copyrightYear}
-               </div>
-             )}
           </div>
         )}
       </div>
 
-      {/* Contatos Encontrados (Scraping) */}
       <div className="border-t border-slate-700 pt-3 mt-auto text-center">
         <span className="text-xs font-semibold text-primary">Ver Consultoria e Contatos &rarr;</span>
       </div>
