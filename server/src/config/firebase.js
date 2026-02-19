@@ -4,30 +4,24 @@ import path from 'path';
 
 let serviceAccount;
 
-// O servidor vai procurar a chave nestes 3 lugares automaticamente:
-const pathsToCheck = [
-  path.resolve(process.cwd(), 'src/config/firebase-service-account.json'), // 1. Onde fica no seu PC local
-  path.resolve(process.cwd(), 'firebase-service-account.json'), // 2. Onde o Render joga o Secret File por padrão
-  '/etc/secrets/firebase-service-account.json' // 3. Pasta alternativa de segurança do Render
-];
-
-let foundPath = null;
-for (const p of pathsToCheck) {
-  if (existsSync(p)) {
-    foundPath = p;
-    break;
-  }
-}
-
 try {
-  if (foundPath) {
-    serviceAccount = JSON.parse(readFileSync(foundPath, 'utf8'));
-    console.log(`✅ Chave do Firebase encontrada em: ${foundPath}`);
-  } else {
-    throw new Error('Arquivo JSON do Firebase não encontrado em nenhum caminho!');
+  // 1. TENTA CARREGAR DA NUVEM (Variável de Ambiente do Render)
+  if (process.env.FIREBASE_JSON) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_JSON);
+    console.log("✅ Chave do Firebase carregada da Variável de Ambiente (Render)!");
+  } 
+  // 2. TENTA CARREGAR DO PC LOCAL (Sua máquina)
+  else {
+    const localPath = path.resolve(process.cwd(), 'src/config/firebase-service-account.json');
+    if (existsSync(localPath)) {
+      serviceAccount = JSON.parse(readFileSync(localPath, 'utf8'));
+      console.log("✅ Chave do Firebase carregada do arquivo local!");
+    } else {
+      throw new Error('Credenciais do Firebase não encontradas na Variável nem no Arquivo!');
+    }
   }
 
-  // Inicializa o Firebase apenas se ele ainda não estiver rodando
+  // Inicializa o Banco de Dados
   if (!admin.apps.length) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
