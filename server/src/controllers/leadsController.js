@@ -19,7 +19,7 @@ export const getLeads = async (req, res) => {
         limit(async () => {
           const leadRef = db.collection('leads').doc(place.id);
           const doc = await leadRef.get();
-          const cacheLimit = Date.now() - 86400000; // Cache de 24h
+          const cacheLimit = Date.now() - 864000000; // Cache de 24h
 
           if (doc.exists) {
             const data = doc.data();

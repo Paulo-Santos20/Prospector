@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, MapPin, Phone, Mail, Share2, Facebook, Instagram, 
   ExternalLink, AlertCircle, Sparkles, Palette, Type, Star, 
-  UtensilsCrossed, Save, MessageSquare, Loader2 
+  UtensilsCrossed, Save, MessageSquare, Loader2, Globe, FileDown 
 } from 'lucide-react';
 import { type Lead, fetchLeadSocials } from '../features/search/services/searchService';
 import { ProposalModal } from '../features/leads/components/ProposalModal';
@@ -22,14 +22,13 @@ export default function LeadDetailsPage() {
   const [notes, setNotes] = useState(lead?.notes || '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
-  // Estados para busca sob demanda (Redes Sociais e E-mails)
+  // Estados para busca sob demanda
   const [socialLinks, setSocialLinks] = useState(lead?.analysis?.socialLinks || []);
   const [emails, setEmails] = useState<string[]>(lead?.analysis?.emails || []);
   const [loadingExtras, setLoadingExtras] = useState(false);
 
   // Efeito para buscar redes e emails apenas ao entrar na página
   useEffect(() => {
-    // Se não tem redes OU não tem e-mails, tenta buscar
     if (lead && ((!socialLinks || socialLinks.length === 0) || (!emails || emails.length === 0))) {
       const loadExtras = async () => {
         setLoadingExtras(true);
@@ -47,7 +46,6 @@ export default function LeadDetailsPage() {
     }
   }, [lead]);
 
-  // Fallback para sessão expirada
   if (!lead) return (
     <div className="min-h-screen bg-background flex items-center justify-center text-slate-400 font-black uppercase tracking-widest">
       Sessão Expirada ou Lead Inválido
@@ -58,7 +56,7 @@ export default function LeadDetailsPage() {
   const analysisData: any = analysis;
   const ds = analysisData?.aiData?.designStrategy;
   
-  // Cores dinâmicas extraídas da IA
+  // Cores dinâmicas
   const pColor = ds?.primaryColor || '#3B82F6';
   const sColor = ds?.secondaryColor || '#6366F1';
 
@@ -83,6 +81,11 @@ export default function LeadDetailsPage() {
     }
   };
 
+  // Função que chama a janela de impressão nativa do navegador para salvar como PDF
+  const handlePrintPDF = () => {
+    window.print();
+  };
+
   const getSocialIcon = (network: string) => {
     switch (network.toLowerCase()) {
       case 'facebook': return <Facebook className="w-5 h-5 text-[#1877F2]" />;
@@ -93,9 +96,11 @@ export default function LeadDetailsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-slate-200 pb-20 font-sans selection:bg-primary selection:text-white">
-      {/* HEADER */}
-      <header className="border-b border-slate-800 bg-surface/80 backdrop-blur-md sticky top-0 z-50 px-4 h-20 flex items-center justify-between">
+    // Adicionado 'print:bg-white print:text-black' para garantir que o PDF saia legível e limpo se necessário
+    <div className="min-h-screen bg-background text-slate-200 pb-20 font-sans selection:bg-primary selection:text-white print:bg-white">
+      
+      {/* HEADER - Escondido na hora da impressão (print:hidden) */}
+      <header className="border-b border-slate-800 bg-surface/80 backdrop-blur-md sticky top-0 z-50 px-4 h-20 flex items-center justify-between print:hidden">
         <button onClick={() => navigate(-1)} className="flex items-center text-slate-400 hover:text-white transition-all font-black uppercase text-[10px] tracking-[0.3em] group">
           <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Voltar
         </button>
@@ -105,28 +110,28 @@ export default function LeadDetailsPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 mt-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <main className="max-w-6xl mx-auto px-4 mt-12 print:mt-0">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 print:block">
           
           <div className="lg:col-span-2 space-y-10">
-            {/* HERO CARD & DIAGNÓSTICO */}
-            <div className="bg-surface border border-slate-700/50 rounded-[3rem] p-10 shadow-3xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[120px] pointer-events-none" style={{ backgroundColor: pColor }}></div>
+            {/* HERO CARD */}
+            <div className="bg-surface border border-slate-700/50 rounded-[3rem] p-10 shadow-3xl relative overflow-hidden group print:border-slate-300 print:shadow-none print:bg-slate-50">
+               <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[120px] pointer-events-none print:hidden" style={{ backgroundColor: pColor }}></div>
                
-               <h1 className="text-6xl font-black text-white mb-4 tracking-tighter leading-none italic uppercase relative z-10">
+               <h1 className="text-6xl font-black text-white mb-4 tracking-tighter leading-none italic uppercase relative z-10 print:text-slate-900">
                  {lead.displayName.text}
                </h1>
                
-               <div className="flex items-center text-slate-400 mb-10 text-sm font-medium opacity-70">
+               <div className="flex items-center text-slate-400 mb-10 text-sm font-medium opacity-70 print:text-slate-600">
                  <MapPin className="w-4 h-4 mr-2" style={{ color: pColor }} /> {lead.formattedAddress}
                </div>
 
-               <div className="p-8 bg-red-500/5 border-l-8 border-red-500 rounded-r-[2rem] relative z-10 backdrop-blur-sm">
+               <div className="p-8 bg-red-500/5 border-l-8 border-red-500 rounded-r-[2rem] relative z-10 backdrop-blur-sm print:bg-red-50">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-red-500/20 rounded-lg"><AlertCircle className="w-5 h-5 text-red-500" /></div>
                     <span className="text-[12px] font-black text-red-500 uppercase tracking-[0.3em]">Diagnóstico de Conversão</span>
                   </div>
-                  <p className="text-xl text-slate-100 font-medium italic leading-relaxed">
+                  <p className="text-xl text-slate-100 font-medium italic leading-relaxed print:text-slate-800">
                     {analysis.status === 'NO_WEBSITE' 
                       ? "Ausência de domínio profissional detectada. A empresa depende 100% de redes sociais e marketplaces, perdendo autoridade e margem de lucro." 
                       : `"${analysisData?.aiData?.mainPainPoint || 'O site atual possui falhas de UX que podem estar drenando suas conversões diárias.'}"`}
@@ -134,8 +139,8 @@ export default function LeadDetailsPage() {
                </div>
             </div>
 
-            {/* HISTÓRICO DE CONTATO */}
-            <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl">
+            {/* HISTÓRICO DE CONTATO (Oculto no PDF para manter sigilo) */}
+            <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl print:hidden">
               <div className="flex items-center gap-3 mb-6">
                 <MessageSquare className="w-6 h-6 text-primary" />
                 <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Histórico de Contato</h2>
@@ -158,14 +163,14 @@ export default function LeadDetailsPage() {
             </section>
 
             {/* BRANDING IA */}
-            <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl">
-              <div className="flex items-center gap-4 mb-12 border-b border-slate-800 pb-8">
+            <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl print:border-slate-300 print:shadow-none print:mt-10">
+              <div className="flex items-center gap-4 mb-12 border-b border-slate-800 pb-8 print:border-slate-300">
                 <div className="p-4 bg-primary/10 rounded-2xl" style={{ backgroundColor: `${pColor}15` }}>
                   <Palette className="w-8 h-8" style={{ color: pColor }} />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Manual Visual Sugerido</h2>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Design Intelligence</p>
+                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none print:text-slate-900">Manual Visual Sugerido</h2>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Design Advisory Report</p>
                 </div>
               </div>
 
@@ -174,36 +179,36 @@ export default function LeadDetailsPage() {
                   <div className="flex items-end gap-6">
                     <div className="space-y-3">
                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Base</p>
-                       <div className="w-20 h-20 rounded-[2rem] shadow-2xl border-4 border-white/10" style={{ backgroundColor: pColor }}></div>
-                       <p className="text-xs font-mono text-white text-center uppercase">{pColor}</p>
+                       <div className="w-20 h-20 rounded-[2rem] shadow-2xl border-4 border-white/10 print:border-slate-300 print:shadow-none" style={{ backgroundColor: pColor }}></div>
+                       <p className="text-xs font-mono text-white text-center uppercase print:text-slate-700">{pColor}</p>
                     </div>
                     <div className="space-y-3">
                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Destaque</p>
-                       <div className="w-14 h-14 rounded-[1.5rem] shadow-xl border-2 border-white/10" style={{ backgroundColor: sColor }}></div>
+                       <div className="w-14 h-14 rounded-[1.5rem] shadow-xl border-2 border-white/10 print:border-slate-300 print:shadow-none" style={{ backgroundColor: sColor }}></div>
                        <p className="text-[10px] font-mono text-slate-400 text-center uppercase">{sColor}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                     <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50">
+                     <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50 print:border-slate-300 print:bg-slate-50">
                         <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Títulos</span></div>
-                        <p className="text-sm font-black text-white truncate">{ds?.typography?.heading || 'Montserrat'}</p>
+                        <p className="text-sm font-black text-white truncate print:text-slate-900">{ds?.typography?.heading || 'Montserrat'}</p>
                      </div>
-                     <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50">
+                     <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50 print:border-slate-300 print:bg-slate-50">
                         <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Corpo</span></div>
-                        <p className="text-sm font-black text-white truncate">{ds?.typography?.body || 'Inter'}</p>
+                        <p className="text-sm font-black text-white truncate print:text-slate-900">{ds?.typography?.body || 'Inter'}</p>
                      </div>
                   </div>
                 </div>
 
                 <div className="space-y-6">
-                   <div className="p-6 bg-background/40 rounded-[2rem] border border-slate-800">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Estilo: <span className="text-white ml-2 italic uppercase">{ds?.style || 'Contemporâneo'}</span></p>
-                      <p className="text-sm text-slate-300 italic font-medium leading-relaxed mb-6">
-                        "{ds?.designReasoning || 'Escolha visual focada em elevar o valor percebido da marca no mercado digital.'}"
+                   <div className="p-6 bg-background/40 rounded-[2rem] border border-slate-800 print:border-slate-300 print:bg-slate-50">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Estilo: <span className="text-white ml-2 italic uppercase print:text-slate-900">{ds?.style || 'Contemporâneo'}</span></p>
+                      <p className="text-sm text-slate-300 italic font-medium leading-relaxed mb-6 print:text-slate-700">
+                        "{ds?.designReasoning || 'Escolha visual focada em elevar o valor percebido da marca no ambiente digital.'}"
                       </p>
                       {ds?.referenceSite && (
-                        <a href={ds.referenceSite} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all text-primary">
+                        <a href={ds.referenceSite} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all text-primary print:border-slate-300">
                            <ExternalLink className="w-3 h-3" /> Ver Referência de Estilo
                         </a>
                       )}
@@ -213,73 +218,98 @@ export default function LeadDetailsPage() {
             </section>
           </div>
 
-          {/* SIDEBAR DE CONTATOS */}
-          <div className="space-y-6">
+          {/* SIDEBAR DE AÇÕES E CONTATOS */}
+          <div className="space-y-6 print:mt-10">
             
-            <button 
-              onClick={handleSaveToCRM}
-              disabled={isSaved}
-              className={`w-full font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 border shadow-lg ${
-                isSaved ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-surface hover:text-amber-400 border-slate-700 active:scale-95'
-              }`}
-            >
-              <Star className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
-              {isSaved ? 'Lead no CRM' : 'Favoritar (CRM)'}
-            </button>
+            {/* GRUPO DE BOTÕES - Ocultos na Impressão */}
+            <div className="space-y-4 print:hidden">
+              <button 
+                onClick={handlePrintPDF}
+                className="w-full font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 border shadow-lg bg-emerald-600/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-600/20 active:scale-95"
+              >
+                <FileDown className="w-5 h-5" /> Baixar Relatório (PDF)
+              </button>
 
-            <button onClick={() => setIsModalOpen(true)} className="w-full text-white font-black py-8 rounded-[2.5rem] shadow-2xl transition-all flex flex-col items-center justify-center gap-1 active:scale-95 uppercase italic tracking-tighter text-xl" style={{ backgroundColor: pColor }}>
-              Enviar Proposta
-              <span className="text-[9px] opacity-60 not-italic tracking-widest uppercase font-bold">Gerar Script com IA</span>
-            </button>
+              <button 
+                onClick={handleSaveToCRM}
+                disabled={isSaved}
+                className={`w-full font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 border shadow-lg ${
+                  isSaved ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-surface hover:text-amber-400 border-slate-700 active:scale-95'
+                }`}
+              >
+                <Star className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
+                {isSaved ? 'Lead no CRM' : 'Favoritar (CRM)'}
+              </button>
 
-            <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden">
+              <button onClick={() => setIsModalOpen(true)} className="w-full text-white font-black py-8 rounded-[2.5rem] shadow-2xl transition-all flex flex-col items-center justify-center gap-1 active:scale-95 uppercase italic tracking-tighter text-xl" style={{ backgroundColor: pColor }}>
+                Enviar Proposta
+                <span className="text-[9px] opacity-60 not-italic tracking-widest uppercase font-bold">Gerar Script com IA</span>
+              </button>
+            </div>
+
+            <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden print:border-slate-300 print:shadow-none print:break-inside-avoid">
               {loadingExtras && (
-                <div className="absolute top-0 left-0 w-full h-1 bg-slate-800">
+                <div className="absolute top-0 left-0 w-full h-1 bg-slate-800 print:hidden">
                   <div className="h-full bg-primary animate-pulse w-1/2"></div>
                 </div>
               )}
               
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-8 border-b border-slate-800 pb-3">Business Intelligence</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-8 border-b border-slate-800 pb-3 print:border-slate-300">Business Intelligence</h3>
               
               <div className="space-y-6">
+                
+                {/* TELEFONE */}
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary/10 rounded-xl text-primary"><Phone className="w-5 h-5" /></div>
-                  <span className="text-sm font-bold">{lead.internationalPhoneNumber || 'Privado/Não informado'}</span>
+                  <div className="p-3 bg-primary/10 rounded-xl text-primary print:bg-slate-100"><Phone className="w-5 h-5" /></div>
+                  <span className="text-sm font-bold print:text-slate-900">{lead.internationalPhoneNumber || 'Não informado'}</span>
                 </div>
                 
-                {/* RENDERIZAÇÃO DINÂMICA DE TODOS OS E-MAILS ENCONTRADOS */}
+                {/* E-MAILS */}
                 {(emails.length > 0 || loadingExtras) && (
                   <div className="flex items-start gap-4">
-                    <div className="p-3 bg-primary/10 rounded-xl text-primary"><Mail className="w-5 h-5" /></div>
+                    <div className="p-3 bg-primary/10 rounded-xl text-primary print:bg-slate-100"><Mail className="w-5 h-5" /></div>
                     <div className="space-y-2 w-full">
                       {loadingExtras && emails.length === 0 ? (
-                         <span className="text-xs italic text-slate-500 block mt-2">Buscando e-mails...</span>
+                         <span className="text-xs italic text-slate-500 block mt-2 print:hidden">Buscando e-mails...</span>
                       ) : (
                          emails.map((e: string, idx: number) => (
-                           <span key={idx} className="block text-xs font-mono text-blue-300 select-all font-bold border-b border-slate-800 pb-2 last:border-0">{e}</span>
+                           <span key={idx} className="block text-xs font-mono text-blue-300 select-all font-bold border-b border-slate-800 pb-2 last:border-0 print:text-slate-700 print:border-slate-200">{e}</span>
                          ))
                       )}
                     </div>
                   </div>
                 )}
+
+                {/* NOVO: SITE OFICIAL (Se Existir) */}
+                {lead.websiteUri && (
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-primary/10 rounded-xl text-primary print:bg-slate-100"><Globe className="w-5 h-5" /></div>
+                    <div className="space-y-1 w-full overflow-hidden">
+                      <span className="block text-[10px] text-slate-500 font-black uppercase tracking-widest">Domínio Atual</span>
+                      <a href={lead.websiteUri} target="_blank" rel="noreferrer" className="block text-xs font-mono text-blue-400 hover:text-blue-300 transition-colors truncate font-bold print:text-blue-600">
+                        {lead.websiteUri}
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
               
-              {/* REDES SOCIAIS COM CARREGAMENTO ON-DEMAND */}
-              <div className="flex justify-center flex-wrap gap-4 mt-10 pt-6 border-t border-slate-800">
+              {/* LISTAGEM DE REDES SOCIAIS E MARKETPLACES */}
+              <div className="flex justify-center flex-wrap gap-4 mt-10 pt-6 border-t border-slate-800 print:border-slate-300">
                 {loadingExtras && socialLinks.length === 0 ? (
-                  <div className="flex flex-col items-center gap-2 animate-pulse w-full">
+                  <div className="flex flex-col items-center gap-2 animate-pulse w-full print:hidden">
                     <Loader2 className="w-6 h-6 text-primary animate-spin" />
                     <span className="text-[8px] font-black uppercase text-slate-500">Rastreando Redes...</span>
                   </div>
                 ) : socialLinks && socialLinks.length > 0 ? (
                   socialLinks.map((s: any, i: number) => (
-                    <a key={i} href={s.url} target="_blank" rel="noreferrer" className="p-4 bg-slate-900 border border-slate-700 rounded-2xl hover:border-primary transition-all flex flex-col items-center gap-2 group">
+                    <a key={i} href={s.url} target="_blank" rel="noreferrer" className="p-4 bg-slate-900 border border-slate-700 rounded-2xl hover:border-primary transition-all flex flex-col items-center gap-2 group print:border-slate-300 print:bg-slate-50">
                       {getSocialIcon(s.network)}
-                      <span className="text-[8px] uppercase font-bold text-slate-500 group-hover:text-white transition-colors">{s.network}</span>
+                      <span className="text-[8px] uppercase font-bold text-slate-500 group-hover:text-white transition-colors print:text-slate-800">{s.network}</span>
                     </a>
                   ))
                 ) : (
-                  <span className="text-[10px] text-slate-600 italic">Redes Sociais não mapeadas</span>
+                  <span className="text-[10px] text-slate-600 italic print:text-slate-500">Redes Sociais não mapeadas</span>
                 )}
               </div>
             </div>
@@ -287,7 +317,10 @@ export default function LeadDetailsPage() {
         </div>
       </main>
 
-      <ProposalModal lead={lead} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      {/* MODAL (Oculto na impressão) */}
+      <div className="print:hidden">
+        <ProposalModal lead={lead} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      </div>
     </div>
   );
 }
