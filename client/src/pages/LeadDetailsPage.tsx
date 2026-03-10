@@ -1,8 +1,8 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, MapPin, Phone, Mail, Share2, Facebook, Instagram, 
-  ExternalLink, AlertCircle, Sparkles, Palette, Type, Star, 
-  UtensilsCrossed, Save, MessageSquare, Loader2, Globe, FileDown 
+import {
+  ArrowLeft, MapPin, Phone, Mail, Share2, Facebook, Instagram,
+  ExternalLink, AlertCircle, Sparkles, Palette, Type, Star,
+  UtensilsCrossed, Save, MessageSquare, Loader2, Globe, FileDown
 } from 'lucide-react';
 import { type Lead, fetchLeadSocials } from '../features/search/services/searchService';
 import { ProposalModal } from '../features/leads/components/ProposalModal';
@@ -12,10 +12,10 @@ import { useState, useEffect } from 'react';
 export default function LeadDetailsPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // Recupera o lead do estado da rota
   const lead = location.state?.lead as Lead;
-  
+
   // Estados para Modal, CRM e Notas
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -55,7 +55,7 @@ export default function LeadDetailsPage() {
   const { analysis } = lead;
   const analysisData: any = analysis;
   const ds = analysisData?.aiData?.designStrategy;
-  
+
   // Cores dinâmicas
   const pColor = ds?.primaryColor || '#3B82F6';
   const sColor = ds?.secondaryColor || '#6366F1';
@@ -98,7 +98,7 @@ export default function LeadDetailsPage() {
   return (
     // Adicionado 'print:bg-white print:text-black' para garantir que o PDF saia legível e limpo se necessário
     <div className="min-h-screen bg-background text-slate-200 pb-20 font-sans selection:bg-primary selection:text-white print:bg-white">
-      
+
       {/* HEADER - Escondido na hora da impressão (print:hidden) */}
       <header className="border-b border-slate-800 bg-surface/80 backdrop-blur-md sticky top-0 z-50 px-4 h-20 flex items-center justify-between print:hidden">
         <button onClick={() => navigate(-1)} className="flex items-center text-slate-400 hover:text-white transition-all font-black uppercase text-[10px] tracking-[0.3em] group">
@@ -112,31 +112,31 @@ export default function LeadDetailsPage() {
 
       <main className="max-w-6xl mx-auto px-4 mt-12 print:mt-0">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 print:block">
-          
+
           <div className="lg:col-span-2 space-y-10">
             {/* HERO CARD */}
             <div className="bg-surface border border-slate-700/50 rounded-[3rem] p-10 shadow-3xl relative overflow-hidden group print:border-slate-300 print:shadow-none print:bg-slate-50">
-               <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[120px] pointer-events-none print:hidden" style={{ backgroundColor: pColor }}></div>
-               
-               <h1 className="text-6xl font-black text-white mb-4 tracking-tighter leading-none italic uppercase relative z-10 print:text-slate-900">
-                 {lead.displayName.text}
-               </h1>
-               
-               <div className="flex items-center text-slate-400 mb-10 text-sm font-medium opacity-70 print:text-slate-600">
-                 <MapPin className="w-4 h-4 mr-2" style={{ color: pColor }} /> {lead.formattedAddress}
-               </div>
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[120px] pointer-events-none print:hidden" style={{ backgroundColor: pColor }}></div>
 
-               <div className="p-8 bg-red-500/5 border-l-8 border-red-500 rounded-r-[2rem] relative z-10 backdrop-blur-sm print:bg-red-50">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-red-500/20 rounded-lg"><AlertCircle className="w-5 h-5 text-red-500" /></div>
-                    <span className="text-[12px] font-black text-red-500 uppercase tracking-[0.3em]">Diagnóstico de Conversão</span>
-                  </div>
-                  <p className="text-xl text-slate-100 font-medium italic leading-relaxed print:text-slate-800">
-                    {analysis.status === 'NO_WEBSITE' 
-                      ? "Ausência de domínio profissional detectada. A empresa depende 100% de redes sociais e marketplaces, perdendo autoridade e margem de lucro." 
-                      : `"${analysisData?.aiData?.mainPainPoint || 'O site atual possui falhas de UX que podem estar drenando suas conversões diárias.'}"`}
-                  </p>
-               </div>
+              <h1 className="text-6xl font-black text-white mb-4 tracking-tighter leading-none italic uppercase relative z-10 print:text-slate-900">
+                {lead.displayName.text}
+              </h1>
+
+              <div className="flex items-center text-slate-400 mb-10 text-sm font-medium opacity-70 print:text-slate-600">
+                <MapPin className="w-4 h-4 mr-2" style={{ color: pColor }} /> {lead.formattedAddress}
+              </div>
+
+              <div className="p-8 bg-red-500/5 border-l-8 border-red-500 rounded-r-[2rem] relative z-10 backdrop-blur-sm print:bg-red-50">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-red-500/20 rounded-lg"><AlertCircle className="w-5 h-5 text-red-500" /></div>
+                  <span className="text-[12px] font-black text-red-500 uppercase tracking-[0.3em]">Diagnóstico de Conversão</span>
+                </div>
+                <p className="text-xl text-slate-100 font-medium italic leading-relaxed print:text-slate-800">
+                  {analysis.status === 'NO_WEBSITE'
+                    ? "Ausência de domínio profissional detectada. A empresa depende 100% de redes sociais e marketplaces, perdendo autoridade e margem de lucro."
+                    : `"${analysisData?.aiData?.mainPainPoint || 'O site atual possui falhas de UX que podem estar drenando suas conversões diárias.'}"`}
+                </p>
+              </div>
             </div>
 
             {/* HISTÓRICO DE CONTATO (Oculto no PDF para manter sigilo) */}
@@ -146,13 +146,13 @@ export default function LeadDetailsPage() {
                 <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Histórico de Contato</h2>
               </div>
               <div className="relative">
-                <textarea 
+                <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Registre as interações (ex: Liguei e falei com o proprietário, retorno agendado para terça)..."
                   className="w-full bg-background border border-slate-700 rounded-2xl p-6 text-slate-300 outline-none focus:ring-2 focus:ring-primary min-h-[150px] transition-all resize-none shadow-inner"
                 />
-                <button 
+                <button
                   onClick={handleSaveNotes}
                   disabled={isSavingNotes}
                   className="absolute bottom-4 right-4 bg-primary hover:bg-blue-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 shadow-lg"
@@ -178,41 +178,41 @@ export default function LeadDetailsPage() {
                 <div className="space-y-10">
                   <div className="flex items-end gap-6">
                     <div className="space-y-3">
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Base</p>
-                       <div className="w-20 h-20 rounded-[2rem] shadow-2xl border-4 border-white/10 print:border-slate-300 print:shadow-none" style={{ backgroundColor: pColor }}></div>
-                       <p className="text-xs font-mono text-white text-center uppercase print:text-slate-700">{pColor}</p>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Base</p>
+                      <div className="w-20 h-20 rounded-[2rem] shadow-2xl border-4 border-white/10 print:border-slate-300 print:shadow-none" style={{ backgroundColor: pColor }}></div>
+                      <p className="text-xs font-mono text-white text-center uppercase print:text-slate-700">{pColor}</p>
                     </div>
                     <div className="space-y-3">
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Destaque</p>
-                       <div className="w-14 h-14 rounded-[1.5rem] shadow-xl border-2 border-white/10 print:border-slate-300 print:shadow-none" style={{ backgroundColor: sColor }}></div>
-                       <p className="text-[10px] font-mono text-slate-400 text-center uppercase">{sColor}</p>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Destaque</p>
+                      <div className="w-14 h-14 rounded-[1.5rem] shadow-xl border-2 border-white/10 print:border-slate-300 print:shadow-none" style={{ backgroundColor: sColor }}></div>
+                      <p className="text-[10px] font-mono text-slate-400 text-center uppercase">{sColor}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                     <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50 print:border-slate-300 print:bg-slate-50">
-                        <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Títulos</span></div>
-                        <p className="text-sm font-black text-white truncate print:text-slate-900">{ds?.typography?.heading || 'Montserrat'}</p>
-                     </div>
-                     <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50 print:border-slate-300 print:bg-slate-50">
-                        <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Corpo</span></div>
-                        <p className="text-sm font-black text-white truncate print:text-slate-900">{ds?.typography?.body || 'Inter'}</p>
-                     </div>
+                    <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50 print:border-slate-300 print:bg-slate-50">
+                      <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Títulos</span></div>
+                      <p className="text-sm font-black text-white truncate print:text-slate-900">{ds?.typography?.heading || 'Montserrat'}</p>
+                    </div>
+                    <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50 print:border-slate-300 print:bg-slate-50">
+                      <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Corpo</span></div>
+                      <p className="text-sm font-black text-white truncate print:text-slate-900">{ds?.typography?.body || 'Inter'}</p>
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-6">
-                   <div className="p-6 bg-background/40 rounded-[2rem] border border-slate-800 print:border-slate-300 print:bg-slate-50">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Estilo: <span className="text-white ml-2 italic uppercase print:text-slate-900">{ds?.style || 'Contemporâneo'}</span></p>
-                      <p className="text-sm text-slate-300 italic font-medium leading-relaxed mb-6 print:text-slate-700">
-                        "{ds?.designReasoning || 'Escolha visual focada em elevar o valor percebido da marca no ambiente digital.'}"
-                      </p>
-                      {ds?.referenceSite && (
-                        <a href={ds.referenceSite} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all text-primary print:border-slate-300">
-                           <ExternalLink className="w-3 h-3" /> Ver Referência de Estilo
-                        </a>
-                      )}
-                   </div>
+                  <div className="p-6 bg-background/40 rounded-[2rem] border border-slate-800 print:border-slate-300 print:bg-slate-50">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Estilo: <span className="text-white ml-2 italic uppercase print:text-slate-900">{ds?.style || 'Contemporâneo'}</span></p>
+                    <p className="text-sm text-slate-300 italic font-medium leading-relaxed mb-6 print:text-slate-700">
+                      "{ds?.designReasoning || 'Escolha visual focada em elevar o valor percebido da marca no ambiente digital.'}"
+                    </p>
+                    {ds?.referenceSite && (
+                      <a href={ds.referenceSite} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all text-primary print:border-slate-300">
+                        <ExternalLink className="w-3 h-3" /> Ver Referência de Estilo
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </section>
@@ -220,30 +220,33 @@ export default function LeadDetailsPage() {
 
           {/* SIDEBAR DE AÇÕES E CONTATOS */}
           <div className="space-y-6 print:mt-10">
-            
+
             {/* GRUPO DE BOTÕES - Ocultos na Impressão */}
             <div className="space-y-4 print:hidden">
-              <button 
+              <button
                 onClick={handlePrintPDF}
                 className="w-full font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 border shadow-lg bg-emerald-600/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-600/20 active:scale-95"
               >
                 <FileDown className="w-5 h-5" /> Baixar Relatório (PDF)
               </button>
 
-              <button 
+              <button
                 onClick={handleSaveToCRM}
                 disabled={isSaved}
-                className={`w-full font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 border shadow-lg ${
-                  isSaved ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-surface hover:text-amber-400 border-slate-700 active:scale-95'
-                }`}
+                className={`w-full font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 border shadow-lg ${isSaved ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-surface hover:text-amber-400 border-slate-700 active:scale-95'
+                  }`}
               >
                 <Star className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
                 {isSaved ? 'Lead no CRM' : 'Favoritar (CRM)'}
               </button>
 
-              <button onClick={() => setIsModalOpen(true)} className="w-full text-white font-black py-8 rounded-[2.5rem] shadow-2xl transition-all flex flex-col items-center justify-center gap-1 active:scale-95 uppercase italic tracking-tighter text-xl" style={{ backgroundColor: pColor }}>
-                Enviar Proposta
-                <span className="text-[9px] opacity-60 not-italic tracking-widest uppercase font-bold">Gerar Script com IA</span>
+              <button onClick={() => navigate(`/proposal/${lead.id}`, { state: { lead } })} className="w-full text-white font-black py-8 rounded-[2.5rem] shadow-2xl transition-all flex flex-col items-center justify-center gap-1 hover:scale-[1.02] active:scale-95 uppercase italic tracking-tighter text-xl" style={{ backgroundColor: pColor }}>
+                Elaborar Proposta (PDF)
+                <span className="text-[10px] opacity-80 not-italic tracking-widest uppercase font-bold mt-1">Metodologia Olimpo</span>
+              </button>
+
+              <button onClick={() => setIsModalOpen(true)} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-black py-4 rounded-[1.5rem] transition-all flex items-center justify-center gap-2 text-sm">
+                <MessageSquare className="w-4 h-4" /> Gerar Script Rápido (WhatsApp)
               </button>
             </div>
 
@@ -253,28 +256,28 @@ export default function LeadDetailsPage() {
                   <div className="h-full bg-primary animate-pulse w-1/2"></div>
                 </div>
               )}
-              
+
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-8 border-b border-slate-800 pb-3 print:border-slate-300">Business Intelligence</h3>
-              
+
               <div className="space-y-6">
-                
+
                 {/* TELEFONE */}
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-primary/10 rounded-xl text-primary print:bg-slate-100"><Phone className="w-5 h-5" /></div>
                   <span className="text-sm font-bold print:text-slate-900">{lead.internationalPhoneNumber || 'Não informado'}</span>
                 </div>
-                
+
                 {/* E-MAILS */}
                 {(emails.length > 0 || loadingExtras) && (
                   <div className="flex items-start gap-4">
                     <div className="p-3 bg-primary/10 rounded-xl text-primary print:bg-slate-100"><Mail className="w-5 h-5" /></div>
                     <div className="space-y-2 w-full">
                       {loadingExtras && emails.length === 0 ? (
-                         <span className="text-xs italic text-slate-500 block mt-2 print:hidden">Buscando e-mails...</span>
+                        <span className="text-xs italic text-slate-500 block mt-2 print:hidden">Buscando e-mails...</span>
                       ) : (
-                         emails.map((e: string, idx: number) => (
-                           <span key={idx} className="block text-xs font-mono text-blue-300 select-all font-bold border-b border-slate-800 pb-2 last:border-0 print:text-slate-700 print:border-slate-200">{e}</span>
-                         ))
+                        emails.map((e: string, idx: number) => (
+                          <span key={idx} className="block text-xs font-mono text-blue-300 select-all font-bold border-b border-slate-800 pb-2 last:border-0 print:text-slate-700 print:border-slate-200">{e}</span>
+                        ))
                       )}
                     </div>
                   </div>
@@ -293,7 +296,7 @@ export default function LeadDetailsPage() {
                   </div>
                 )}
               </div>
-              
+
               {/* LISTAGEM DE REDES SOCIAIS E MARKETPLACES */}
               <div className="flex justify-center flex-wrap gap-4 mt-10 pt-6 border-t border-slate-800 print:border-slate-300">
                 {loadingExtras && socialLinks.length === 0 ? (

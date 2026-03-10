@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; // Ad
 import DashboardPage from './pages/DashboardPage';
 import LeadDetailsPage from './pages/LeadDetailsPage'; 
 import KanbanPage from './pages/KanbanPage';
+import ProposalBuilderPage from './pages/ProposalBuilderPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,6 +23,7 @@ function App() {
           <Route path="/lead/:id" element={<LeadDetailsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           <Route path="/crm" element={<KanbanPage />} />
+          <Route path="/proposal/:id" element={<ProposalBuilderPage />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
