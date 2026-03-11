@@ -4,7 +4,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { 
   Loader2, Sparkles, AlertCircle, 
-  Globe, ShieldAlert, Users, Send, Target, TrendingUp, Layout
+  Globe, ShieldAlert, Users, Send, Target, Layout
 } from 'lucide-react';
 
 import { searchLeadsStream, type Lead } from '../features/search/services/searchService';
