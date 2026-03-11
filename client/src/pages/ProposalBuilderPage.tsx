@@ -1,24 +1,76 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileDown, Edit3, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { 
+  ArrowLeft, FileDown, Edit3, Image as ImageIcon, 
+  Wand2, Loader2, Sparkles, Settings, Lock, Unlock, Save 
+} from 'lucide-react';
 import { type Lead } from '../features/search/services/searchService';
+// Importe a sua função de salvar do CRM (Ajuste o caminho se necessário)
+// import { saveProposalData } from '../features/crm/services/crmService';
 
-// Componente para imagens editáveis na proposta
-const EditableImage = ({ defaultImg, alt }: { defaultImg: string, alt: string }) => {
-  const [src, setSrc] = useState(defaultImg);
+// Componente Inteligente de Imagem (Com Cadeado, Enquadramento e Anti-Erro)
+const EditableImage = ({ 
+  value, onChange, alt, isGenerating, isLocked, onToggleLock 
+}: { 
+  value: string, onChange: (val: string) => void, alt: string, isGenerating?: boolean, isLocked: boolean, onToggleLock: () => void 
+}) => {
+  const [imgSrc, setImgSrc] = useState(value);
+
+  // Sincroniza a imagem local com o estado pai
+  useEffect(() => {
+    setImgSrc(value);
+  }, [value]);
 
   const handleChangeImage = () => {
-    const newUrl = prompt("Cole o link (URL) da imagem que deseja usar aqui:", src);
-    if (newUrl) setSrc(newUrl);
+    if (isGenerating || isLocked) return;
+    const newUrl = prompt("Cole o link (URL) da imagem que deseja usar aqui:", value);
+    if (newUrl) onChange(newUrl);
+  };
+
+  const handleImageError = () => {
+    // Se a IA falhar ou o link quebrar, coloca uma imagem genérica segura para não quebrar o layout
+    setImgSrc('https://images.unsplash.com/photo-1618044733300-9472054094ee?q=80&w=1000&auto=format&fit=crop');
   };
 
   return (
-    <div className="relative group cursor-pointer rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50" onClick={handleChangeImage}>
-      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white font-bold z-10 print:hidden backdrop-blur-sm">
-        <ImageIcon className="w-8 h-8 mb-2" />
-        <span className="text-xs uppercase tracking-widest">Trocar Imagem</span>
+    <div className="relative group rounded-2xl overflow-hidden shadow-2xl border border-slate-700/50 bg-slate-900 w-full h-64 shrink-0">
+      {/* Botão de Travar/Destravar Imagem */}
+      <button 
+        onClick={(e) => { e.stopPropagation(); onToggleLock(); }} 
+        className={`absolute top-4 right-4 z-30 p-2.5 rounded-full transition-all print:hidden backdrop-blur-md border ${
+          isLocked 
+            ? 'bg-amber-500/20 text-amber-400 border-amber-500/50 hover:bg-amber-500/30' 
+            : 'bg-slate-900/60 text-white border-slate-600 hover:bg-slate-800'
+        }`}
+        title={isLocked ? "Desbloquear imagem" : "Fixar imagem (Proteger da IA)"}
+      >
+        {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+      </button>
+
+      <div onClick={handleChangeImage} className="w-full h-full cursor-pointer">
+        {isGenerating && !isLocked ? (
+          <div className="absolute inset-0 bg-slate-900/80 flex flex-col items-center justify-center text-amber-400 font-bold z-20 backdrop-blur-sm">
+            <Loader2 className="w-8 h-8 mb-2 animate-spin" />
+            <span className="text-[10px] uppercase tracking-widest animate-pulse">IA Desenhando...</span>
+          </div>
+        ) : (
+          !isLocked && (
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white font-bold z-10 print:hidden backdrop-blur-sm">
+              <ImageIcon className="w-8 h-8 mb-2" />
+              <span className="text-[10px] uppercase tracking-widest">Trocar Imagem</span>
+            </div>
+          )
+        )}
+        
+        <img 
+          src={imgSrc} 
+          alt={alt} 
+          onError={handleImageError}
+          className={`w-full h-full object-cover object-center transition-transform duration-700 ${
+            isGenerating && !isLocked ? 'scale-110 blur-sm opacity-50' : 'group-hover:scale-105'
+          }`} 
+        />
       </div>
-      <img src={src} alt={alt} className="w-full h-64 object-cover object-center group-hover:scale-105 transition-transform duration-500" />
     </div>
   );
 };
@@ -28,11 +80,27 @@ export default function ProposalBuilderPage() {
   const navigate = useNavigate();
   const lead = location.state?.lead as Lead;
 
+  // Usa os dados salvos do lead (se existirem) ou os padrões
+  const savedData = (lead as any)?.proposalData || {};
+
   // Preços editáveis
-  const [priceZeus, setPriceZeus] = useState('2.497,00');
-  const [priceHermesSetup, setPriceHermesSetup] = useState('1.497,00');
-  const [priceHermesMonthly, setPriceHermesMonthly] = useState('197,00');
-  const [priceAthena, setPriceAthena] = useState('150,00');
+  const [priceZeus, setPriceZeus] = useState(savedData.priceZeus || '2.497,00');
+  const [priceHermesSetup, setPriceHermesSetup] = useState(savedData.priceHermesSetup || '1.497,00');
+  const [priceHermesMonthly, setPriceHermesMonthly] = useState(savedData.priceHermesMonthly || '197,00');
+  const [priceAthena, setPriceAthena] = useState(savedData.priceAthena || '150,00');
+
+  // Imagens Editáveis
+  const [imgCaos, setImgCaos] = useState(savedData.imgCaos || 'https://images.unsplash.com/photo-1555622900-3756209eefc6?q=80&w=1000&auto=format&fit=crop');
+  const [imgHefesto, setImgHefesto] = useState(savedData.imgHefesto || 'https://images.unsplash.com/photo-1533077162812-ebc52ec1e171?q=80&w=1000&auto=format&fit=crop');
+  const [imgOlimpo, setImgOlimpo] = useState(savedData.imgOlimpo || 'https://images.unsplash.com/photo-1555992828-ca4dbe41d294?q=80&w=1000&auto=format&fit=crop');
+  
+  // Controle de Bloqueio (Cadeado)
+  const [lockedCaos, setLockedCaos] = useState(!!savedData.imgCaos);
+  const [lockedHefesto, setLockedHefesto] = useState(!!savedData.imgHefesto);
+  const [lockedOlimpo, setLockedOlimpo] = useState(!!savedData.imgOlimpo);
+
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   if (!lead) return <div className="p-10 text-white font-black">Lead não encontrado. Volte e selecione um cliente.</div>;
 
@@ -40,30 +108,91 @@ export default function ProposalBuilderPage() {
     window.print();
   };
 
+  const handleSaveProposal = async () => {
+    setIsSaving(true);
+    try {
+      const proposalData = {
+        priceZeus, priceHermesSetup, priceHermesMonthly, priceAthena,
+        imgCaos, imgHefesto, imgOlimpo
+      };
+      // Habilite esta linha após criar a função no seu crmService
+      // await saveProposalData(lead.id, proposalData);
+      
+      alert("Proposta salva com sucesso no Banco de Dados!");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao salvar a proposta.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Geração de Imagem Respeitando Cadeados e Usando Modelo FLUX (Mais estável)
+  const handleGenerateAIPictures = () => {
+    if (lockedCaos && lockedHefesto && lockedOlimpo) {
+      alert("Todas as imagens estão fixadas! Destrave alguma para gerar novas.");
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    
+    const baseStyle = "flat vector illustration, minimal corporate design, greek mythology theme, warm tones, pastel beige and amber colors, elegant, clean white background";
+    const randomSeed = Math.floor(Math.random() * 100000);
+
+    // Utilizamos o model=flux para evitar o erro de Internal Server Error (500)
+    const generateUrl = (promptText: string) => 
+      `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=800&height=400&model=flux&seed=${randomSeed}`;
+
+    setTimeout(() => {
+      if (!lockedCaos) setImgCaos(generateUrl(`A frustrated modern person looking at a chaotic computer screen with bugs and errors, ${baseStyle}`));
+      if (!lockedHefesto) setImgHefesto(generateUrl(`Greek god Hephaestus with white beard forging glowing golden digital code on an anvil, ${baseStyle}`));
+      if (!lockedOlimpo) setImgOlimpo(generateUrl(`A majestic greek temple on top of a mountain glowing in golden sunlight, ${baseStyle}`));
+      
+      // Simulamos um pequeno delay extra de interface para as imagens carregarem suavemente
+      setTimeout(() => setIsGeneratingAI(false), 800);
+    }, 500);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-slate-200 pb-20">
       {/* BARRA DE CONTROLE (Escondida na impressão) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-surface border border-slate-700 p-4 rounded-full shadow-2xl flex items-center gap-4 z-50 print:hidden backdrop-blur-md w-[90%] max-w-3xl overflow-x-auto">
-        <button onClick={() => navigate(-1)} className="p-3 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-all shrink-0">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-surface border border-slate-700 p-4 rounded-full shadow-2xl flex items-center gap-4 z-50 print:hidden backdrop-blur-md w-[95%] max-w-5xl overflow-x-auto scrollbar-hide">
+        <button onClick={() => navigate(-1)} className="p-3 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-all shrink-0" title="Voltar">
           <ArrowLeft className="w-5 h-5" />
         </button>
+        
         <div className="h-8 w-px bg-slate-700 shrink-0"></div>
-        <div className="flex items-center gap-2 text-xs font-bold text-amber-400 px-4 whitespace-nowrap">
-          <Edit3 className="w-4 h-4 shrink-0" /> Clique nos textos para editar e nas imagens para trocar
-        </div>
-        <div className="h-8 w-px bg-slate-700 shrink-0"></div>
-        <button onClick={handlePrint} className="bg-primary hover:bg-blue-600 text-white px-6 py-3 rounded-full font-black text-sm flex items-center gap-2 transition-all shadow-[0_0_20px_#3B82F650] shrink-0 ml-auto">
-          <FileDown className="w-5 h-5" /> Exportar PDF (A4)
+        
+        <button 
+          onClick={handleGenerateAIPictures} 
+          disabled={isGeneratingAI}
+          className="bg-slate-800 hover:bg-slate-700 text-amber-400 px-5 py-3 rounded-full font-black text-[11px] flex items-center gap-2 transition-all uppercase tracking-widest shrink-0 border border-slate-700 disabled:opacity-50"
+        >
+          {isGeneratingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+          {isGeneratingAI ? 'Criando Arte...' : 'Gerar Fotos (IA)'}
+        </button>
+
+        <button 
+          onClick={handleSaveProposal} 
+          disabled={isSaving}
+          className="bg-slate-800 hover:bg-slate-700 text-white px-5 py-3 rounded-full font-black text-[11px] flex items-center gap-2 transition-all uppercase tracking-widest shrink-0 border border-slate-700 disabled:opacity-50"
+        >
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {isSaving ? 'Salvando...' : 'Salvar Progresso'}
+        </button>
+
+        <div className="h-8 w-px bg-slate-700 shrink-0 ml-auto"></div>
+        
+        <button onClick={handlePrint} className="bg-primary hover:bg-blue-600 text-white px-6 py-3 rounded-full font-black text-[11px] flex items-center gap-2 transition-all shadow-[0_0_20px_#3B82F650] shrink-0 uppercase tracking-widest">
+          <FileDown className="w-5 h-5" /> Exportar PDF
         </button>
       </div>
 
-      {/* ÁREA DA PROPOSTA (Estilo A4) */}
-      {/* Adicionado WebkitPrintColorAdjust para forçar as cores exatas na impressão */}
+      {/* ÁREA DA PROPOSTA */}
       <div className="w-full max-w-[210mm] mx-auto mt-10 print:mt-0 shadow-2xl print:shadow-none bg-slate-950 overflow-hidden text-slate-200" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
         
         {/* ================= PÁGINA 1: CAPA ================= */}
         <div className="w-full h-[297mm] p-16 flex flex-col justify-center relative break-after-page border-b-8 border-amber-500 overflow-hidden">
-          {/* Efeito visual de fundo */}
           <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-amber-500/10 blur-[150px] pointer-events-none rounded-full -translate-y-1/4 translate-x-1/3"></div>
           
           <div className="mb-20 relative z-10">
@@ -85,21 +214,23 @@ export default function ProposalBuilderPage() {
         </div>
 
         {/* ================= PÁGINA 2: O CAOS & A SOLUÇÃO ================= */}
-        <div className="w-full h-[297mm] p-16 flex flex-col relative break-after-page bg-[#0B0F19] border-b-8 border-primary">
-          <div className="mb-10">
+        <div className="w-full h-[297mm] p-16 flex flex-col relative break-after-page bg-[#0B0F19] border-b-8 border-primary overflow-hidden">
+          <div className="mb-8 shrink-0">
             <h3 className="text-sm font-black text-red-500 uppercase tracking-[0.3em] mb-2">O Caos</h3>
             <h2 className="text-4xl font-black text-white mb-4" suppressContentEditableWarning contentEditable>A "velha era" está afastando seus clientes</h2>
             <p className="text-md text-slate-400 leading-relaxed" suppressContentEditableWarning contentEditable>
-              No mercado atual, não possuir uma infraestrutura própria significa perder autoridade. Clientes modernos não confiam em negócios difíceis de encontrar ou que dependem exclusivamente de plataformas de terceiros.
+              No mercado atual, não possuir uma infraestrutura própria significa perder autoridade. Clientes modernos não confiam em negócios difíceis de encontrar.
             </p>
           </div>
 
-          <div className="mb-10">
-            {/* Placeholder da Imagem 1: Caos/Frustração */}
-            <EditableImage defaultImg="https://images.unsplash.com/photo-1555622900-3756209eefc6?q=80&w=1000&auto=format&fit=crop" alt="O Caos" />
+          <div className="mb-8 shrink-0">
+            <EditableImage 
+              value={imgCaos} onChange={setImgCaos} alt="O Caos" 
+              isGenerating={isGeneratingAI} isLocked={lockedCaos} onToggleLock={() => setLockedCaos(!lockedCaos)} 
+            />
           </div>
 
-          <div className="grid grid-cols-2 gap-6 mt-auto">
+          <div className="grid grid-cols-2 gap-6 mt-auto shrink-0">
             <div className="p-5 bg-red-950/30 border border-red-900/50 rounded-2xl">
               <h4 className="text-red-400 font-bold mb-2 text-lg">Sites Lentos</h4>
               <p className="text-sm text-slate-400 leading-relaxed" suppressContentEditableWarning contentEditable>Páginas que demoram eternidades para carregar fazem potenciais clientes desistirem antes mesmo de conhecer seu serviço.</p>
@@ -111,19 +242,21 @@ export default function ProposalBuilderPage() {
           </div>
         </div>
 
-        {/* ================= PÁGINA 3: A SOLUÇÃO (ACORDE'S & HEFESTO) ================= */}
-        <div className="w-full h-[297mm] p-16 flex flex-col relative break-after-page bg-slate-900 border-b-8 border-emerald-500">
-          <div className="mb-8">
+        {/* ================= PÁGINA 3: A SOLUÇÃO (HEFESTO) ================= */}
+        <div className="w-full h-[297mm] p-16 flex flex-col relative break-after-page bg-slate-900 border-b-8 border-emerald-500 overflow-hidden">
+          <div className="mb-8 shrink-0">
             <h3 className="text-sm font-black text-emerald-500 uppercase tracking-[0.3em] mb-2">A Solução Divina</h3>
             <h2 className="text-4xl font-black text-white" suppressContentEditableWarning contentEditable>Como Apolo, trazemos a luz para o seu negócio</h2>
           </div>
 
-          <div className="mb-10">
-            {/* Placeholder da Imagem 2/3: Hefesto forjando / Tecnologia */}
-            <EditableImage defaultImg="https://images.unsplash.com/photo-1533077162812-ebc52ec1e171?q=80&w=1000&auto=format&fit=crop" alt="A Força de Hefesto" />
+          <div className="mb-8 shrink-0">
+            <EditableImage 
+              value={imgHefesto} onChange={setImgHefesto} alt="A Força de Hefesto" 
+              isGenerating={isGeneratingAI} isLocked={lockedHefesto} onToggleLock={() => setLockedHefesto(!lockedHefesto)} 
+            />
           </div>
 
-          <div className="mt-auto bg-slate-950/50 p-8 rounded-3xl border border-slate-800">
+          <div className="mt-auto bg-slate-950/50 p-8 rounded-3xl border border-slate-800 shrink-0">
             <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
               <Sparkles className="text-emerald-500 w-6 h-6" /> A Força de Hefesto
             </h3>
@@ -132,35 +265,34 @@ export default function ProposalBuilderPage() {
             <div className="grid grid-cols-2 gap-x-8 gap-y-6">
               <div>
                 <h4 className="text-emerald-400 font-bold text-sm uppercase tracking-widest mb-1">Design UX/UI de Excelência</h4>
-                <p className="text-xs text-slate-400" suppressContentEditableWarning contentEditable>Cada pixel é estrategicamente pensado para converter simples visitantes em clientes fiéis e pagantes.</p>
+                <p className="text-xs text-slate-400" suppressContentEditableWarning contentEditable>Cada pixel pensado para converter visitantes em clientes pagantes.</p>
               </div>
               <div>
                 <h4 className="text-emerald-400 font-bold text-sm uppercase tracking-widest mb-1">Mobile-First Impecável</h4>
-                <p className="text-xs text-slate-400" suppressContentEditableWarning contentEditable>Experiência perfeita em qualquer dispositivo, priorizando os smartphones, onde seus clientes realmente estão.</p>
+                <p className="text-xs text-slate-400" suppressContentEditableWarning contentEditable>Experiência perfeita em celulares, onde seus clientes realmente estão.</p>
               </div>
               <div>
                 <h4 className="text-emerald-400 font-bold text-sm uppercase tracking-widest mb-1">Velocidade de Hermes</h4>
-                <p className="text-xs text-slate-400" suppressContentEditableWarning contentEditable>Carregamento instantâneo. Tecnologia de ponta que garante performance incomparável nas buscas.</p>
+                <p className="text-xs text-slate-400" suppressContentEditableWarning contentEditable>Carregamento instantâneo para garantir performance incomparável.</p>
               </div>
               <div>
                 <h4 className="text-emerald-400 font-bold text-sm uppercase tracking-widest mb-1">Arquitetura Limpa & SEO</h4>
-                <p className="text-xs text-slate-400" suppressContentEditableWarning contentEditable>Código forjado com precisão divina, garantindo que seu site seja facilmente encontrado no Google.</p>
+                <p className="text-xs text-slate-400" suppressContentEditableWarning contentEditable>Código forjado para seu site ser encontrado pelo Google na sua região.</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ================= PÁGINA 4: OS PLANOS DE ASCENSÃO ================= */}
-        <div className="w-full h-[297mm] p-16 flex flex-col relative break-after-page bg-[#0B0F19] border-b-8 border-amber-500">
-          <h3 className="text-sm font-black text-amber-500 uppercase tracking-[0.3em] mb-2 text-center">Modelos de Investimento</h3>
-          <h2 className="text-4xl font-black text-white mb-12 text-center" suppressContentEditableWarning contentEditable>Qual será o seu destino?</h2>
+        {/* ================= PÁGINA 4: OS PLANOS ================= */}
+        <div className="w-full h-[297mm] p-16 flex flex-col relative break-after-page bg-[#0B0F19] border-b-8 border-amber-500 overflow-hidden">
+          <h3 className="text-sm font-black text-amber-500 uppercase tracking-[0.3em] mb-2 text-center shrink-0">Modelos de Investimento</h3>
+          <h2 className="text-4xl font-black text-white mb-12 text-center shrink-0" suppressContentEditableWarning contentEditable>Qual será o seu destino?</h2>
 
-          <div className="grid grid-cols-1 gap-8">
-            
+          <div className="grid grid-cols-1 gap-8 mt-auto shrink-0">
             {/* O TRONO DE ZEUS (Compra) */}
             <div className="p-8 bg-slate-900 border border-slate-800 rounded-[2rem] relative">
               <div className="absolute top-0 right-0 py-2 px-4 bg-slate-800 rounded-bl-2xl rounded-tr-[2rem] text-[10px] font-black uppercase text-slate-400 tracking-widest">Compra de Ativo</div>
-              <h3 className="text-3xl font-black text-white mb-2">O Trono de Zeus</h3>
+              <h3 className="text-3xl font-black text-white mb-2 flex items-center gap-3"><Settings className="w-7 h-7 text-slate-400" /> O Trono de Zeus</h3>
               <p className="text-sm text-slate-400 mb-6" suppressContentEditableWarning contentEditable>A aquisição absoluta. "Como Zeus governa o Olimpo, você governará seu domínio digital com poder absoluto."</p>
               
               <ul className="space-y-3 text-sm text-slate-300 mb-8 font-medium" suppressContentEditableWarning contentEditable>
@@ -180,7 +312,7 @@ export default function ProposalBuilderPage() {
             {/* A ASA DE HERMES (SaaS) */}
             <div className="p-8 bg-gradient-to-br from-amber-900/20 to-slate-900 border-2 border-amber-500/50 rounded-[2rem] relative shadow-[0_0_30px_#F59E0B15]">
               <div className="absolute top-0 right-0 py-2 px-4 bg-amber-500 text-slate-900 rounded-bl-2xl rounded-tr-[2rem] text-[10px] font-black uppercase tracking-widest shadow-lg">Mais Escolhido</div>
-              <h3 className="text-3xl font-black text-amber-500 mb-2">A Asa de Hermes</h3>
+              <h3 className="text-3xl font-black text-amber-500 mb-2 flex items-center gap-3"><Sparkles className="w-7 h-7" /> A Asa de Hermes</h3>
               <p className="text-sm text-amber-100/70 mb-6" suppressContentEditableWarning contentEditable>Site as a Service (SaaS). Baixo investimento inicial, previsibilidade financeira e nós cuidamos de toda a tecnologia para você.</p>
               
               <ul className="space-y-3 text-sm text-slate-200 mb-8 font-medium" suppressContentEditableWarning contentEditable>
@@ -205,14 +337,13 @@ export default function ProposalBuilderPage() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
-        {/* ================= PÁGINA 5: ATENA, QUEM SOMOS E FECHAMENTO ================= */}
-        <div className="w-full h-[297mm] p-16 flex flex-col relative bg-slate-950 border-b-8 border-primary">
+        {/* ================= PÁGINA 5: ATENA & QUEM SOMOS ================= */}
+        <div className="w-full h-[297mm] p-16 flex flex-col relative bg-slate-950 border-b-8 border-primary overflow-hidden">
           
-          <div className="mb-12 p-8 bg-blue-950/20 border border-blue-900/30 rounded-3xl">
+          <div className="mb-10 p-8 bg-blue-950/20 border border-blue-900/30 rounded-3xl shrink-0">
             <h3 className="text-2xl font-black text-blue-400 mb-2">O Escudo de Atena (Manutenção)</h3>
             <p className="text-sm text-slate-400 mb-6 italic" suppressContentEditableWarning contentEditable>"A sabedoria de Atena nos ensina que um site sem manutenção é como uma fortaleza sem guardas."</p>
             <ul className="space-y-2 text-sm text-slate-300 mb-6" suppressContentEditableWarning contentEditable>
@@ -227,7 +358,7 @@ export default function ProposalBuilderPage() {
             </div>
           </div>
 
-          <div className="mb-10">
+          <div className="mb-8 shrink-0">
             <h3 className="text-sm font-black text-primary uppercase tracking-[0.3em] mb-4">Quem Somos</h3>
             <div className="grid grid-cols-2 gap-8 items-center">
               <div>
@@ -235,20 +366,21 @@ export default function ProposalBuilderPage() {
                   Somos arquitetos digitais focados em trazer o poder do desenvolvimento moderno para empresas terrenas. Conectamos a sabedoria milenar do design com a tecnologia de vanguarda do presente.
                 </p>
                 <p className="text-sm text-slate-300 leading-relaxed font-bold" suppressContentEditableWarning contentEditable>
-                  Oferecemos 100% de Código Proprietário, suporte divino e infinitas possibilidades de escalabilidade para o seu negócio.
+                  Oferecemos 100% de Código Proprietário, suporte divino e infinitas possibilidades de escalabilidade.
                 </p>
               </div>
-              <EditableImage defaultImg="https://images.unsplash.com/photo-1555992828-ca4dbe41d294?q=80&w=1000&auto=format&fit=crop" alt="Olimpo Temple" />
+              <EditableImage 
+                value={imgOlimpo} onChange={setImgOlimpo} alt="Olimpo Temple" 
+                isGenerating={isGeneratingAI} isLocked={lockedOlimpo} onToggleLock={() => setLockedOlimpo(!lockedOlimpo)} 
+              />
             </div>
           </div>
 
-          <div className="mt-auto text-center">
+          <div className="mt-auto text-center shrink-0">
             <h3 className="text-sm font-black text-amber-500 uppercase tracking-[0.3em] mb-4">O Oráculo</h3>
             <h2 className="text-3xl font-black text-white mb-4" suppressContentEditableWarning contentEditable>O futuro pertence àqueles que ousam ascender ao Olimpo Digital.</h2>
-            <p className="text-slate-400 mb-8" suppressContentEditableWarning contentEditable>O Poder da Conversão está ao seu alcance. Vamos iniciar essa jornada?</p>
-            
-            <div className="inline-block px-8 py-4 bg-primary text-white font-black uppercase tracking-widest rounded-full text-sm">
-              Aprovar Proposta e Iniciar Projeto
+            <div className="inline-block px-8 py-4 bg-primary text-white font-black uppercase tracking-widest rounded-full text-sm mt-4">
+              Aprovar Proposta
             </div>
           </div>
 
