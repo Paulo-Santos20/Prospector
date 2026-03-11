@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
@@ -7,8 +7,8 @@ import {
   Globe, ShieldAlert, Users, Send, Target, TrendingUp, Layout
 } from 'lucide-react';
 
-import { searchLeads } from '../features/search/services/searchService';
-import { LeadCard } from '../components/LeadCard'; // Usando o componente principal
+import { searchLeadsStream, type Lead } from '../features/search/services/searchService';
+import { LeadCard } from '../components/LeadCard'; 
 
 export default function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,6 +19,11 @@ export default function DashboardPage() {
 
   const [nicheInput, setNicheInput] = useState(nicheParam);
   const [locationInput, setLocationInput] = useState(locationParam);
+
+  // Estados do Streaming
+  const [liveLeads, setLiveLeads] = useState<Lead[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const hasFetched = useRef(false);
 
   const { data: stats } = useQuery({
     queryKey: ['global-stats'],
@@ -31,32 +36,62 @@ export default function DashboardPage() {
     refetchInterval: 30000,
   });
 
-  const { data, isFetching } = useQuery({
-    queryKey: ['leads', nicheParam, locationParam],
-    queryFn: () => searchLeads(nicheParam, locationParam),
-    enabled: !!nicheParam && !!locationParam,
-    staleTime: 1000 * 60 * 5,
-  });
+  // Função que inicia a "Torneira" de dados
+  const startStreaming = (niche: string, location: string) => {
+    setIsStreaming(true);
+    setLiveLeads([]); 
+
+    searchLeadsStream(
+      niche, location,
+      (initialLeads) => {
+        // Ao receber a lista básica do Google, coloca todos com status "ANALYZING"
+        const leadsWithLoading = initialLeads.map(l => ({
+            ...l,
+            analysis: l.analysis || { status: 'ANALYZING' }
+        }));
+        setLiveLeads(leadsWithLoading);
+      },
+      (updatedLead) => {
+        // Substitui o lead antigo pelo novo que acabou de ser analisado pela IA
+        setLiveLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
+      },
+      () => {
+        setIsStreaming(false); // O Stream acabou, botão volta ao normal
+      },
+      (err) => {
+        console.error(err);
+        setIsStreaming(false);
+        alert("Erro ao prospectar. Tente novamente.");
+      }
+    );
+  };
+
+  // Dispara a busca automática se abrir o link já com os parâmetros na URL
+  useEffect(() => {
+    if (nicheParam && locationParam && !hasFetched.current) {
+      hasFetched.current = true;
+      startStreaming(nicheParam, locationParam);
+    }
+  }, [nicheParam, locationParam]);
 
   const filteredLeads = useMemo(() => {
-    if (!data?.leads) return [];
-    return data.leads.filter(l => {
-      if (!l.analysis) return activeFilter === 'all';
+    return liveLeads.filter(l => {
+      if (!l.analysis || l.analysis.status === 'ANALYZING') return activeFilter === 'all';
       switch (activeFilter) {
         case 'no_website': return l.analysis.status === 'NO_WEBSITE' || !l.websiteUri;
-        // Corrigido: Validando se a propriedade existe com verificação de nulo/undefined
         case 'insecure': return l.analysis.status !== 'NO_WEBSITE' && l.websiteUri && l.analysis.isSecure === false;
         case 'not_responsive': return l.analysis.status !== 'NO_WEBSITE' && l.websiteUri && l.analysis.isResponsive === false;
         default: return true;
       }
     });
-  }, [data, activeFilter]);
+  }, [liveLeads, activeFilter]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nicheInput || !locationInput) return;
     setSearchParams({ niche: nicheInput, location: locationInput });
     setActiveFilter('all'); 
+    startStreaming(nicheInput, locationInput);
   };
 
   return (
@@ -69,66 +104,48 @@ export default function DashboardPage() {
           </div>
           
           <div className="flex items-center gap-4">
-            <Link 
-              to="/crm" 
-              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all border border-slate-700 hover:border-primary shadow-lg"
-            >
+            <Link to="/crm" className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all border border-slate-700 hover:border-primary shadow-lg">
               <Layout className="w-4 h-4 text-primary" /> Meu CRM
             </Link>
-            
-            <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 uppercase hidden sm:inline-block">Sistema Online</span>
-            <div className="text-xs font-mono text-slate-500 hidden sm:block">v1.2</div>
+            <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 uppercase hidden sm:inline-block">Live Stream Ativo</span>
+            <div className="text-xs font-mono text-slate-500 hidden sm:block">v2.5</div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 mt-8">
-        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <StatCard icon={<Users />} label="Leads Minerados" value={stats?.totalLeads || 0} color="text-blue-400" />
           <StatCard icon={<Send />} label="Propostas Enviadas" value={stats?.totalProposals || 0} color="text-emerald-400" />
           <StatCard icon={<Target />} label="Taxa de Resposta" value={`${stats?.rate || 0}%`} color="text-amber-400" />
         </div>
 
-        <div className="bg-gradient-to-r from-primary/10 to-transparent border border-primary/20 p-6 rounded-[2rem] mb-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div>
-            <h2 className="text-lg font-black italic uppercase tracking-tighter flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" /> Nível de Prospecção
-            </h2>
-            <p className="text-xs text-slate-400">Você está a 5 propostas de bater sua meta diária e subir de nível!</p>
-          </div>
-          <div className="w-full md:w-64 h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700">
-             <div className="h-full bg-primary rounded-full shadow-[0_0_15px_#3B82F6]" style={{ width: '65%' }}></div>
-          </div>
-        </div>
-
         <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-2xl mb-10 relative overflow-hidden">
            <h1 className="text-2xl font-black mb-6 flex items-center gap-2 italic uppercase">
-             <Sparkles className="w-5 h-5 text-amber-400" /> Nova Mineração
+             <Sparkles className="w-5 h-5 text-amber-400" /> Inteligência de Mineração
            </h1>
-           <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
+           <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 relative z-10">
               <input 
-                type="text" placeholder="Nicho (ex: Pizzaria)" value={nicheInput}
+                type="text" placeholder="Nicho (ex: Clínicas de Estética)" value={nicheInput}
                 onChange={(e) => setNicheInput(e.target.value)}
                 className="flex-1 bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition"
               />
               <input 
-                type="text" placeholder="Localização (ex: Olinda)" value={locationInput}
+                type="text" placeholder="Localização (ex: Recife)" value={locationInput}
                 onChange={(e) => setLocationInput(e.target.value)}
                 className="flex-1 bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition"
               />
-              <button disabled={isFetching} type="submit" className="bg-primary hover:bg-blue-600 text-white font-black py-4 px-10 rounded-2xl transition disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-tighter italic">
-                {isFetching ? <Loader2 className="animate-spin" /> : 'Prospectar'}
+              <button disabled={isStreaming} type="submit" className="bg-primary hover:bg-blue-600 text-white font-black py-4 px-10 rounded-2xl transition disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-tighter italic">
+                {isStreaming ? <Loader2 className="animate-spin" /> : 'Prospectar Ao Vivo'}
               </button>
            </form>
         </div>
 
-        {data?.leads && (
+        {liveLeads.length > 0 && (
           <div className="flex flex-wrap gap-3 mb-8">
-            <FilterButton active={activeFilter === 'all'} onClick={() => setActiveFilter('all')} icon={<Globe />} label="Todos" count={data.leads.length} />
-            <FilterButton active={activeFilter === 'no_website'} onClick={() => setActiveFilter('no_website')} icon={<AlertCircle />} label="Sem Site" variant="danger" count={data.leads.filter(l => l.analysis?.status === 'NO_WEBSITE' || !l.websiteUri).length} />
-            {/* Corrigido o acesso ao .length seguro aqui também */}
-            <FilterButton active={activeFilter === 'insecure'} onClick={() => setActiveFilter('insecure')} icon={<ShieldAlert />} label="Inseguros" variant="warning" count={data.leads.filter(l => l.analysis?.status !== 'NO_WEBSITE' && l.websiteUri && l.analysis?.isSecure === false).length} />
+            <FilterButton active={activeFilter === 'all'} onClick={() => setActiveFilter('all')} icon={<Globe />} label="Todos" count={liveLeads.length} />
+            <FilterButton active={activeFilter === 'no_website'} onClick={() => setActiveFilter('no_website')} icon={<AlertCircle />} label="Sem Site" variant="danger" count={liveLeads.filter(l => l.analysis?.status === 'NO_WEBSITE' || !l.websiteUri).length} />
+            <FilterButton active={activeFilter === 'insecure'} onClick={() => setActiveFilter('insecure')} icon={<ShieldAlert />} label="Inseguros" variant="warning" count={liveLeads.filter(l => l.analysis?.status !== 'NO_WEBSITE' && l.websiteUri && l.analysis?.isSecure === false).length} />
           </div>
         )}
 
