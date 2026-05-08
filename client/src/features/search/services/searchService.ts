@@ -40,8 +40,15 @@ export interface SearchResponse {
 }
 
 export const searchLeads = async (niche: string, location: string): Promise<SearchResponse> => {
-  const response = await api.post<SearchResponse>('/leads/search', { niche, location });
-  return response.data;
+  try {
+    console.log('[Search] Searching for:', niche, 'in', location);
+    const response = await api.post<SearchResponse>('/leads/search', { niche, location });
+    console.log('[Search] Success:', response.data.count, 'leads found');
+    return response.data;
+  } catch (error: any) {
+    console.error('[Search] Error:', error?.response?.data || error?.message || error);
+    throw error;
+  }
 };
 
 export const fetchLeadSocials = async (id: string, name: string, location: string) => {

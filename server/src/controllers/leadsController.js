@@ -46,7 +46,8 @@ export const getLeads = async (req, res) => {
     );
     res.json({ count: enrichedLeads.length, leads: enrichedLeads });
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao buscar leads' });
+    console.error('getLeads error:', error);
+    res.status(500).json({ error: 'Erro ao buscar leads', details: error.message });
   }
 };
 
