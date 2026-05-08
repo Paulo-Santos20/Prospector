@@ -25,7 +25,7 @@ export const analyzeLeadWithAI = async (companyData) => {
   } = companyData;
 
   try {
-    const cleanContent = htmlContent
+    const cleanContent = (htmlContent || '')
       .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
       .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
       .replace(/<[^>]*>?/gm, ' ')

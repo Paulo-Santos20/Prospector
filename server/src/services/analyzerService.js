@@ -150,7 +150,7 @@ export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0
         conversionOpportunity: aiInsight.conversionOpportunity || 'B',
         keyIssues: aiInsight.keyIssues || [],
         recommendedActions: aiInsight.recommendedActions || [],
-        designStrategy: aiInsight.designStrategy
+        designStrategy: aiInsight.designStrategy || aiInsight.designStrategy
       };
 
       if (aiInsight.emails && Array.isArray(aiInsight.emails)) {
@@ -160,6 +160,14 @@ export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0
     }
   } catch (aiError) {
     console.error(`[IA] Erro na análise da Groq:`, aiError.message);
+    result.aiData = {
+      mainPainPoint: 'Análise técnica indisponível no momento',
+      diagnosisReasoning: '',
+      urgency: 'medium',
+      conversionOpportunity: 'B',
+      keyIssues: [],
+      recommendedActions: []
+    };
   }
 
   result.emails = [...new Set(result.emails.map(e => e.toLowerCase()))];
