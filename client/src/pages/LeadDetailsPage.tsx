@@ -125,6 +125,8 @@ export default function LeadDetailsPage() {
   };
 
   const ds = analysisData as any;
+  const pColor = '#3B82F6';
+  const sColor = '#6366F1';
 
   const handleSaveNotes = async () => {
     setIsSavingNotes(true);
