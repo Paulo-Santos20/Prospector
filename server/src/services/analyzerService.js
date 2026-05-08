@@ -18,6 +18,23 @@ const AXIOS_CONFIG = {
   timeout: TIMEOUT_MS
 };
 
+const removeUndefined = (obj) => {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefined).filter(item => item !== undefined);
+  }
+  if (typeof obj === 'object') {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        result[key] = removeUndefined(value);
+      }
+    }
+    return result;
+  }
+  return obj;
+};
+
 const scrapePageForEmails = async ($, baseUrl) => {
   const emails = new Set();
 
@@ -150,7 +167,7 @@ export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0
         conversionOpportunity: aiInsight.conversionOpportunity || 'B',
         keyIssues: aiInsight.keyIssues || [],
         recommendedActions: aiInsight.recommendedActions || [],
-        designStrategy: aiInsight.designStrategy || aiInsight.designStrategy
+        designStrategy: aiInsight.designStrategy || null
       };
 
       if (aiInsight.emails && Array.isArray(aiInsight.emails)) {
@@ -191,6 +208,8 @@ export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0
         result.status = result.opportunityScore >= 50 ? 'HIGH_OPPORTUNITY' : 'MODERN_SITE';
     }
   }
+
+  result.aiData = removeUndefined(result.aiData);
 
   return result;
 };
@@ -252,7 +271,7 @@ export const enrichLeadWithFullDiagnosis = async (leadData) => {
   });
 
   return {
-    aiData: aiInsight ? {
+    aiData: aiInsight ? removeUndefined({
       ownerName: aiInsight.ownerName || 'Responsável',
       mainPainPoint: aiInsight.mainPainPoint || 'Falta de presença digital otimizada',
       diagnosisReasoning: aiInsight.diagnosisReasoning || '',
@@ -260,9 +279,9 @@ export const enrichLeadWithFullDiagnosis = async (leadData) => {
       conversionOpportunity: aiInsight.conversionOpportunity || 'B',
       keyIssues: aiInsight.keyIssues || [],
       recommendedActions: aiInsight.recommendedActions || [],
-      designStrategy: aiInsight.designStrategy,
+      designStrategy: aiInsight.designStrategy || null,
       socialStats: socialInfo.socialStats
-    } : null,
+    }) : null,
     enrichedAt: new Date().toISOString()
   };
 };
