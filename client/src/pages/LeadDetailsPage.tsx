@@ -326,11 +326,9 @@ export default function LeadDetailsPage() {
                     <p className="text-sm text-slate-300 italic font-medium leading-relaxed mb-6 print:text-slate-700">
                       "{ds?.designReasoning || 'Escolha visual focada em elevar o valor percebido da marca no ambiente digital.'}"
                     </p>
-                    {ds?.referenceSite && (
-                      <a href={ds.referenceSite} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all text-primary print:border-slate-300">
+                    <a href={ds?.referenceSite || 'https://www.behance.net'} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all text-primary print:border-slate-300">
                         <ExternalLink className="w-3 h-3" /> Ver Referência de Estilo
                       </a>
-                    )}
                   </div>
                 </div>
               </div>

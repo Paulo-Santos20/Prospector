@@ -285,59 +285,5 @@ const getSocialMediaStats = async (socialLinks) => {
   const stats = {};
   let totalFollowers = 0;
 
-  for (const link of socialLinks) {
-    try {
-      if (link.network === 'instagram') {
-        const followerCount = await getInstagramFollowers(link.url);
-        stats.instagram = { url: link.url, followerCount };
-        totalFollowers += followerCount;
-      } else if (link.network === 'facebook') {
-        const followerCount = await getFacebookFollowers(link.url);
-        stats.facebook = { url: link.url, followerCount };
-        totalFollowers += followerCount;
-      }
-    } catch {}
-  }
-
   return { followerCount: totalFollowers, socialStats: stats };
-};
-
-const getInstagramFollowers = async (instagramUrl) => {
-  try {
-    const { data: html } = await axios.get(instagramUrl, {
-      ...AXIOS_CONFIG,
-      timeout: 5000
-    });
-
-    const $ = cheerio.load(html);
-    const scriptContent = $('script[type="application/ld+json"]').html();
-    if (scriptContent) {
-      const data = JSON.parse(scriptContent);
-      return data.aggregateRating?.reviewCount || 0;
-    }
-
-    const metaFollowers = $('meta[property="og:description"]').attr('content');
-    if (metaFollowers) {
-      const match = metaFollowers.match(/([\d,]+)\s*seguidores/);
-      if (match) return parseInt(match[1].replace(',', ''));
-    }
-  } catch {}
-  return 0;
-};
-
-const getFacebookFollowers = async (facebookUrl) => {
-  try {
-    const { data: html } = await axios.get(facebookUrl, {
-      ...AXIOS_CONFIG,
-      timeout: 5000
-    });
-
-    const $ = cheerio.load(html);
-    const metaContent = $('meta[property="og:description"]').attr('content');
-    if (metaContent) {
-      const match = metaContent.match(/([\d,.]+)\s*(likes?|seguidores?)/i);
-      if (match) return parseInt(match[1].replace('.', ''));
-    }
-  } catch {}
-  return 0;
 };

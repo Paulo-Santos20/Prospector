@@ -1,6 +1,8 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+  "routes": [
+    { "src": "/lead/:id", "dest": "/index.html" },
+    { "src": "/proposal/:id", "dest": "/index.html" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [
     {
