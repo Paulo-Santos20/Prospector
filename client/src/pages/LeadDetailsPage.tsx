@@ -1,11 +1,10 @@
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, Phone, Mail, Share2, Facebook, Instagram,
   ExternalLink, AlertCircle, Sparkles, Palette, Type, Star,
-  UtensilsCrossed, Save, MessageSquare, Loader2, Globe, FileDown,
-  TrendingUp, Users, Clock
+  UtensilsCrossed, Save, MessageSquare, Loader2, Globe, FileDown
 } from 'lucide-react';
-import { type Lead, fetchLeadSocials, enrichLead, fetchLeadById } from '../features/search/services/searchService';
+import { type Lead, fetchLeadSocials, enrichLead } from '../features/search/services/searchService';
 import { ProposalModal } from '../features/leads/components/ProposalModal';
 import { saveLeadToCRM, updateLeadNotes } from '../features/crm/services/crmService';
 import { useState, useEffect } from 'react';
@@ -13,10 +12,9 @@ import { useState, useEffect } from 'react';
 export default function LeadDetailsPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { id } = useParams();
 
-  const [lead, setLead] = useState<Lead | null>(location.state?.lead || null);
-  const [loadingLead, setLoadingLead] = useState(!location.state?.lead && !!id);
+  const [lead] = useState<Lead | null>(location.state?.lead || null);
+  const [loadingLead] = useState(!location.state?.lead);
 
   // Estados para Modal, CRM e Notas
   const [isModalOpen, setIsModalOpen] = useState(false);
