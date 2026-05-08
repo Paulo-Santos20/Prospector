@@ -146,7 +146,7 @@ export const getSocials = async (req, res) => {
     const leadRef = db.collection('leads').doc(id);
     await leadRef.update({
       'analysis.socialLinks': socials,
-      'analysis.emails': emails.length > 0 ? emails : admin.firestore.FieldValue.arrayUnion(),
+      'analysis.emails': emails,
       updatedAt: admin.firestore.Timestamp.now()
     });
 

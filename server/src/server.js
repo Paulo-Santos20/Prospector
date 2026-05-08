@@ -1,17 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { getLeads, getSocials } from './controllers/leadsController.js';
+import leadsRoutes from './routes/leadsRoutes.js';
 import { getGlobalStats } from './controllers/statsController.js';
-import { saveToCRM, getCRMLeads, updateCRMLead } from './controllers/crmController.js'; 
+import { saveToCRM, getCRMLeads, updateCRMLead } from './controllers/crmController.js';
 
 dotenv.config();
 const app = express();
 
-// --- CORREÇÃO DO CORS: Link exato, sem barra "/" no final ---
 const allowedOrigins = [
-  'http://localhost:5173', 
-  'https://prospector-dun.vercel.app' 
+  'http://localhost:5173',
+  'https://prospector-dun.vercel.app'
 ];
 
 app.use(cors({
@@ -28,12 +27,9 @@ app.use(cors({
 
 app.use(express.json());
 
-// Rotas Antigas
-app.post('/api/leads/search', getLeads);
-app.post('/api/leads/socials', getSocials);
+app.use('/api/leads', leadsRoutes);
 app.get('/api/stats', getGlobalStats);
 
-// NOVAS ROTAS DE CRM
 app.post('/api/crm', saveToCRM);
 app.get('/api/crm', getCRMLeads);
 app.put('/api/crm/:id', updateCRMLead);
