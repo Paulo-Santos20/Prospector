@@ -115,14 +115,6 @@ export default function LeadDetailsPage() {
     </div>
   );
 
-  const { analysis } = lead;
-  const analysisData: any = enrichedData || analysis?.aiData;
-  const ds = analysisData?.aiData?.designStrategy;
-
-  // Cores dinâmicas
-  const pColor = ds?.primaryColor || '#3B82F6';
-  const sColor = ds?.secondaryColor || '#6366F1';
-
   const handleSaveToCRM = async () => {
     try {
       await saveLeadToCRM(lead);
@@ -131,6 +123,8 @@ export default function LeadDetailsPage() {
       console.error("Erro ao salvar no CRM", error);
     }
   };
+
+  const ds = analysisData as any;
 
   const handleSaveNotes = async () => {
     setIsSavingNotes(true);
