@@ -53,3 +53,12 @@ export const enrichLead = async (id: string): Promise<{ alreadyEnriched: boolean
   const response = await api.post('/leads/enrich', { id });
   return response.data;
 };
+
+export const fetchLeadById = async (id: string): Promise<Lead | null> => {
+  try {
+    const response = await api.get<Lead>(`/leads/${id}`);
+    return response.data;
+  } catch {
+    return null;
+  }
+};

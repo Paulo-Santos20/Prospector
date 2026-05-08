@@ -1,11 +1,11 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, Phone, Mail, Share2, Facebook, Instagram,
   ExternalLink, AlertCircle, Sparkles, Palette, Type, Star,
   UtensilsCrossed, Save, MessageSquare, Loader2, Globe, FileDown,
   TrendingUp, Users, Clock
 } from 'lucide-react';
-import { type Lead, fetchLeadSocials, enrichLead } from '../features/search/services/searchService';
+import { type Lead, fetchLeadSocials, enrichLead, fetchLeadById } from '../features/search/services/searchService';
 import { ProposalModal } from '../features/leads/components/ProposalModal';
 import { saveLeadToCRM, updateLeadNotes } from '../features/crm/services/crmService';
 import { useState, useEffect } from 'react';
@@ -13,9 +13,10 @@ import { useState, useEffect } from 'react';
 export default function LeadDetailsPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { id } = useParams();
 
-  // Recupera o lead do estado da rota
-  const lead = location.state?.lead as Lead;
+  const [lead, setLead] = useState<Lead | null>(location.state?.lead || null);
+  const [loadingLead, setLoadingLead] = useState(!location.state?.lead && !!id);
 
   // Estados para Modal, CRM e Notas
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,24 +31,27 @@ export default function LeadDetailsPage() {
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichedData, setEnrichedData] = useState(lead?.analysis?.aiData);
 
-  // Efeito para buscar redes, emails e enriquecer ao entrar na página
+// Efeito para buscar redes, emails e enriquecer ao entrar na página
   useEffect(() => {
     if (!lead) return;
+
+    let isMounted = true;
 
     const loadExtras = async () => {
       setLoadingExtras(true);
       try {
-        // Busca redes sociais e emails
         const [socialData] = await Promise.all([
           fetchLeadSocials(lead.id, lead.displayName.text, lead.formattedAddress)
         ]);
 
-        if (socialData.socialLinks) setSocialLinks(socialData.socialLinks);
-        if (socialData.emails) setEmails(socialData.emails);
+        if (isMounted) {
+          if (socialData.socialLinks) setSocialLinks(socialData.socialLinks);
+          if (socialData.emails) setEmails(socialData.emails);
+        }
       } catch (error) {
         console.error("Erro ao carregar dados extras", error);
       } finally {
-        setLoadingExtras(false);
+        if (isMounted) setLoadingExtras(false);
       }
     };
 
@@ -55,23 +59,38 @@ export default function LeadDetailsPage() {
       setIsEnriching(true);
       try {
         const result = await enrichLead(lead.id);
-        if (result.aiData) {
+        if (isMounted && result.aiData) {
           setEnrichedData(result.aiData);
         }
       } catch (error) {
         console.error("Erro ao enriquecer lead", error);
       } finally {
-        setIsEnriching(false);
+        if (isMounted) setIsEnriching(false);
       }
     };
 
     loadExtras();
     enrichLeadData();
+
+    return () => { isMounted = false; };
   }, [lead?.id]);
 
+  if (loadingLead) return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center text-slate-400">
+      <Loader2 className="w-8 h-8 animate-spin mb-4" />
+      <span className="font-black uppercase tracking-widest">Carregando Lead...</span>
+    </div>
+  );
+
   if (!lead) return (
-    <div className="min-h-screen bg-background flex items-center justify-center text-slate-400 font-black uppercase tracking-widest">
-      Sessão Expirada ou Lead Inválido
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center text-slate-400">
+      <span className="font-black uppercase tracking-widest mb-4">Lead Não Encontrado</span>
+      <button
+        onClick={() => navigate('/')}
+        className="text-primary hover:underline"
+      >
+        Voltar ao Dashboard
+      </button>
     </div>
   );
 

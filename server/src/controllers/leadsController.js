@@ -138,3 +138,25 @@ export const getSocials = async (req, res) => {
     res.status(500).json({ error: 'Erro ao buscar redes e e-mails' });
   }
 };
+
+export const getLeadById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: 'ID do lead é obrigatório' });
+    }
+
+    const leadRef = db.collection('leads').doc(id);
+    const doc = await leadRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Lead não encontrado' });
+    }
+
+    res.json({ id: doc.id, ...doc.data() });
+  } catch (error) {
+    console.error("Erro ao buscar lead por ID:", error);
+    res.status(500).json({ error: 'Erro ao buscar lead' });
+  }
+};
