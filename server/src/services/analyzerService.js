@@ -160,14 +160,12 @@ export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0
     if (aiInsight) {
       console.log(`[IA] Inteligência gerada com sucesso para: ${businessName}`);
       result.aiData = {
-        ownerName: aiInsight.ownerName || 'Responsável',
         mainPainPoint: aiInsight.mainPainPoint || 'Falta de presença digital otimizada',
-        diagnosisReasoning: aiInsight.diagnosisReasoning || '',
         urgency: aiInsight.urgency || 'medium',
         conversionOpportunity: aiInsight.conversionOpportunity || 'B',
-        keyIssues: aiInsight.keyIssues || [],
-        recommendedActions: aiInsight.recommendedActions || [],
-        designStrategy: aiInsight.designStrategy || null
+        keyMetrics: aiInsight.keyMetrics || null,
+        specificIssues: aiInsight.specificIssues || [],
+        recommendedActions: aiInsight.recommendedActions || []
       };
 
       if (aiInsight.emails && Array.isArray(aiInsight.emails)) {
@@ -179,10 +177,9 @@ export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0
     console.error(`[IA] Erro na análise da Groq:`, aiError.message);
     result.aiData = {
       mainPainPoint: 'Análise técnica indisponível no momento',
-      diagnosisReasoning: '',
       urgency: 'medium',
       conversionOpportunity: 'B',
-      keyIssues: [],
+      specificIssues: [],
       recommendedActions: []
     };
   }
@@ -272,14 +269,12 @@ export const enrichLeadWithFullDiagnosis = async (leadData) => {
 
   return {
     aiData: aiInsight ? removeUndefined({
-      ownerName: aiInsight.ownerName || 'Responsável',
       mainPainPoint: aiInsight.mainPainPoint || 'Falta de presença digital otimizada',
-      diagnosisReasoning: aiInsight.diagnosisReasoning || '',
       urgency: aiInsight.urgency || 'medium',
       conversionOpportunity: aiInsight.conversionOpportunity || 'B',
-      keyIssues: aiInsight.keyIssues || [],
+      keyMetrics: aiInsight.keyMetrics || null,
+      specificIssues: aiInsight.specificIssues || [],
       recommendedActions: aiInsight.recommendedActions || [],
-      designStrategy: aiInsight.designStrategy || null,
       socialStats: socialInfo.socialStats
     }) : null,
     enrichedAt: new Date().toISOString()

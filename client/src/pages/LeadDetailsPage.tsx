@@ -16,6 +16,9 @@ export default function LeadDetailsPage() {
   const [lead] = useState<Lead | null>(location.state?.lead || null);
   const [loadingLead] = useState(!location.state?.lead);
 
+  const rating = lead?.rating;
+  const userRatingCount = lead?.userRatingCount;
+
   // Estados para Modal, CRM e Notas
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -28,6 +31,26 @@ export default function LeadDetailsPage() {
   const [loadingExtras, setLoadingExtras] = useState(false);
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichedData, setEnrichedData] = useState(lead?.analysis?.aiData);
+
+  const analysis = lead?.analysis;
+  const analysisData = enrichedData || analysis?.aiData;
+
+  // Helper functions
+  const formatFollowers = (count: number): string => {
+    if (count === 0) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
+    return count.toString();
+  };
+
+  const MetricCard = ({ icon, value, label, subtext }: { icon: string; value: string; label: string; subtext?: string }) => (
+    <div className="bg-slate-800/50 rounded-xl p-4 text-center border border-slate-700/50">
+      <div className="text-2xl mb-1">{icon}</div>
+      <div className="text-xl font-bold text-white">{value}</div>
+      <div className="text-xs text-slate-400 uppercase tracking-wider">{label}</div>
+      {subtext && <div className="text-[10px] text-slate-500 mt-1">{subtext}</div>}
+    </div>
+  );
 
 // Efeito para buscar redes, emails e enriquecer ao entrar na página
   useEffect(() => {
@@ -195,22 +218,45 @@ export default function LeadDetailsPage() {
                   )}
                 </div>
               )}
-              <p className="text-xl text-slate-100 font-medium italic leading-relaxed print:text-slate-800">
-                {analysis.status === 'NO_WEBSITE'
-                  ? "Ausência de domínio profissional detectada. A empresa depende 100% de redes sociais e marketplaces, perdendo autoridade e margem de lucro."
-                  : `"${analysisData?.mainPainPoint || 'O site atual possui falhas de UX que podem estar drenando suas conversões diárias.'}"`}
+              {/* KEY METRICS */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <MetricCard
+                  icon="★"
+                  value={analysisData?.keyMetrics?.rating?.toFixed(1) || rating?.toFixed(1) || 'N/A'}
+                  label="Avaliação"
+                  subtext={analysisData?.keyMetrics?.rating ? `${rating}/5` : undefined}
+                />
+                <MetricCard
+                  icon="📝"
+                  value={analysisData?.keyMetrics?.reviewCount?.toLocaleString() || userRatingCount?.toLocaleString() || '0'}
+                  label="Avaliações"
+                />
+                <MetricCard
+                  icon="👥"
+                  value={formatFollowers(analysisData?.keyMetrics?.totalFollowers || 0)}
+                  label="Seguidores"
+                />
+              </div>
+
+              {/* MAIN PAIN POINT */}
+              <p className="text-lg text-slate-100 font-semibold leading-relaxed">
+                {analysisData?.mainPainPoint || 'Análise em progresso...'}
               </p>
-              {analysisData?.diagnosisReasoning && (
-                <p className="text-sm text-slate-400 mt-3 italic">
-                  {analysisData.diagnosisReasoning}
-                </p>
-              )}
-              {analysisData?.keyIssues && analysisData.keyIssues.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {analysisData.keyIssues.map((issue: string, idx: number) => (
-                    <span key={idx} className="px-3 py-1 bg-slate-700/50 rounded-full text-xs text-slate-300">
-                      {issue}
-                    </span>
+
+              {/* SPECIFIC ISSUES */}
+              {analysisData?.specificIssues && analysisData.specificIssues.length > 0 && (
+                <div className="space-y-2 mt-4">
+                  {analysisData.specificIssues.map((issue: any, idx: number) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <span className={`text-[10px] px-2 py-1 rounded uppercase font-bold ${
+                        issue.impact === 'high' ? 'bg-red-500/30 text-red-400' :
+                        issue.impact === 'medium' ? 'bg-yellow-500/30 text-yellow-400' :
+                        'bg-slate-600/30 text-slate-400'
+                      }`}>
+                        {issue.type.replace('_', ' ')}
+                      </span>
+                      <span className="text-sm text-slate-300">{issue.description}</span>
+                    </div>
                   ))}
                 </div>
               )}

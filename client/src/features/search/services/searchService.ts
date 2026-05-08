@@ -21,15 +21,26 @@ export interface Lead {
     copyrightYear?: number;
     enrichedAt?: string;
     aiData?: {
-      ownerName?: string;
       mainPainPoint?: string;
-      diagnosisReasoning?: string;
       urgency?: 'high' | 'medium' | 'low';
       conversionOpportunity?: 'A' | 'B' | 'C';
-      keyIssues?: string[];
+      keyMetrics?: {
+        rating?: number;
+        reviewCount?: number;
+        totalFollowers?: number;
+        platforms?: string[];
+        priceLevel?: number;
+        hasWebsite?: boolean;
+        hasEmail?: boolean;
+        hasSocial?: boolean;
+      };
+      specificIssues?: Array<{
+        type: string;
+        impact: 'high' | 'medium' | 'low';
+        description: string;
+      }>;
       recommendedActions?: string[];
-      designStrategy?: any;
-      socialStats?: any;
+      socialStats?: Record<string, { url: string; followerCount: number }>;
     };
   };
 }

@@ -54,36 +54,32 @@ export const analyzeLeadWithAI = async (companyData) => {
         {
           role: "system",
           content: `Você é um Consultor de Conversão Digital especialista em análise de presença digital de pequenas e médias empresas.
-Seu objetivo é identificar a PRINCIPAIS DOR DE CONVERSÃO do cliente com base nos dados disponíveis.
 
 REGRAS IMPORTANTES:
 1. Analise TODOS os dados fornecidos para criar um diagnóstico preciso
-2. O diagnóstico deve ser específico, não genérico - use os dados reais
-3. Se não há site, mencione a ausência de canal próprio
-4. Se há site mas sem SSL ou não responsivo, mencione problemas técnicos
-5. Se há site bom mas nota baixa no Google, sugira gestão de reputação
-6. Se tem muitos reviews mas nota baixa, isso é prioritário
-7. Se não tem email profissional nem redes sociais, mencione falta de canais de contato
-8. Use TERMINOLOGIA COMERCIAL - evite termos técnicos demais
-
-CLASSIFICAÇÃO DE URGÊNCIA:
-- HIGH: Sem presença digital, site quebrado, sem SSL, nota muito baixa (<3.5) com muitos reviews, ou empresa muito grande com presença digital precária
-- MEDIUM: Site existente mas com problemas técnicos, nota entre 3.5-4.2, ou falta de algum canal importante
-- LOW: Boa presença digital mas com espaço para melhoria, ou nota alta com poucos reviews
-
-CLASSIFICAÇÃO DE OPORTUNIDADE (A-B-C):
-- A: Empresa grande (muitos reviews OU alto priceLevel) COM sérios problemas de conversão - POTENCIAL ALTO
-- B: Empresa média com problemas moderados de conversão - POTENCIAL MÉDIO
-- C: Empresa pequena ou problemas menores - POTENCIAL MENOR
+2. NÃO escreva parágrafos explicativos longos - retorne dados estruturados
+3. Cada campo do JSON deve ter um valor direto e objetivo
+4. Use TERMINOLOGIA COMERCIAL CURTA - máximo 10 palavras para mainPainPoint
 
 Retorne APENAS este JSON, sem texto adicional:
 {
-  "mainPainPoint": "A principal dor de conversão em 1-2 frases (terminologia comercial)",
-  "diagnosisReasoning": "Explicação técnica breve de por que este é o problema principal, citing dados reais",
+  "mainPainPoint": "Problema principal em até 10 palavras (ex: 'Sem site próprio + email ausente')",
   "urgency": "high|medium|low",
   "conversionOpportunity": "A|B|C",
-  "keyIssues": ["problema1", "problema2", "problema3"],
-  "recommendedActions": ["ação1", "ação2"]
+  "keyMetrics": {
+    "rating": 0-5 ou null,
+    "reviewCount": número ou 0,
+    "totalFollowers": número ou 0,
+    "platforms": ["instagram", "facebook", etc] ou [],
+    "priceLevel": 1-4,
+    "hasWebsite": true|false,
+    "hasEmail": true|false,
+    "hasSocial": true|false
+  },
+  "specificIssues": [
+    { "type": "no_website|no_email|no_social|low_rating|high_competition|other", "impact": "high|medium|low", "description": "Descrição curta do problema" }
+  ],
+  "recommendedActions": ["Ação 1", "Ação 2"]
 }`
         },
         {
@@ -96,7 +92,7 @@ ${cleanContent ? `Conteúdo do Site (se disponível): ${cleanContent}` : '(Sem s
       ],
       model: "llama-3.3-70b-versatile",
       response_format: { type: "json_object" },
-      temperature: 0.5,
+      temperature: 0.3,
     });
 
     const result = JSON.parse(chatCompletion.choices[0].message.content);
@@ -119,61 +115,33 @@ const buildContextDescription = (data) => {
   lines.push(`---DADOS PRESENÇA DIGITAL---`);
 
   if (!data.hasWebsite && !data.isThirdParty) {
-    lines.push(`PRESENÇA DIGITAL: Nenhum website encontrado (oportunidade alta)`);
+    lines.push(`SITE: NÃO`);
   } else if (data.isThirdParty) {
-    lines.push(`PRESENÇA DIGITAL: Apenas redes sociais/perfis (sem site próprio)`);
+    lines.push(`SITE: Apenas redes sociais/perfis (NÃO)`);
   } else {
-    lines.push(`PRESENÇA DIGITAL: Website próprio encontrado`);
+    lines.push(`SITE: SIM`);
   }
 
   if (data.hasWebsite && !data.isThirdParty) {
-    if (data.isSecure) {
-      lines.push(`SEGURANÇA: ✓ SSL/HTTPS habilitado`);
-    } else {
-      lines.push(`SEGURANÇA: ✗ SEM SSL - crítico para conversão`);
-    }
-
-    if (data.isResponsive) {
-      lines.push(`MOBILE: ✓ Site responsivo`);
-    } else {
-      lines.push(`MOBILE: ✗ Site NÃO responsivo - perdendo tráfego mobile`);
-    }
+    lines.push(`SSL: ${data.isSecure ? 'SIM' : 'NÃO'}`);
+    lines.push(`MOBILE: ${data.isResponsive ? 'SIM' : 'NÃO'}`);
   }
 
   lines.push(`---DADOS REPUTAÇÃO---`);
-  lines.push(`NOTA GOOGLE: ${data.rating > 0 ? `${data.rating}/5` : 'Não disponível'}`);
+  lines.push(`NOTA: ${data.rating > 0 ? data.rating : 'N/A'}`);
+  lines.push(`REVIEWS: ${data.reviewCount}`);
+  lines.push(`PREÇO: ${getPriceLevelDescription(data.priceLevel)}`);
 
-  if (data.reviewCount > 0) {
-    lines.push(`QUANTIDADE REVIEWS: ${data.reviewCount} avaliações no Google`);
-    if (data.rating < 3.5 && data.reviewCount > 20) {
-      lines.push(`⚠️ ALERTA: Muitos reviews com nota baixa - gestão de reputação urgente`);
-    } else if (data.rating >= 4.5 && data.reviewCount > 50) {
-      lines.push(`✓ Empresa bem avaliada com volume significativo`);
-    }
-  } else {
-    lines.push(`QUANTIDADE REVIEWS: Poucas ou nenhuma avaliação`);
-  }
-
-  lines.push(`NICHO: ${getPriceLevelDescription(data.priceLevel)}`);
-
-  lines.push(`---CANAIS DE CONTATO---`);
-
-  if (data.emailCount > 0) {
-    lines.push(`EMAIL: ${data.emailCount} email(s) encontrado(s) no site`);
-  } else {
-    lines.push(`EMAIL: ✗ Nenhum email profissional encontrado`);
-  }
+  lines.push(`---CANAIS---`);
+  lines.push(`EMAIL: ${data.emailCount > 0 ? 'SIM' : 'NÃO'}`);
+  lines.push(`REDES SOCIAIS: ${data.socialLinksCount > 0 ? 'SIM' : 'NÃO'}`);
 
   if (data.socialLinksCount > 0) {
-    lines.push(`REDES SOCIAIS: ${data.socialLinksCount} link(s) encontrados`);
     const socialNames = data.socialLinks.map(s => s.network).join(', ');
     lines.push(`PLATAFORMAS: ${socialNames}`);
-
     if (data.followerCount > 0) {
-      lines.push(`SEGUIDORES: ~${data.followerCount.toLocaleString()}`);
+      lines.push(`SEGUIDORES: ${data.followerCount}`);
     }
-  } else {
-    lines.push(`REDES SOCIAIS: ✗ Nenhum link de redes sociais encontrado`);
   }
 
   return lines.join('\n');
@@ -182,10 +150,10 @@ const buildContextDescription = (data) => {
 const getPriceLevelDescription = (priceLevel) => {
   const descriptions = {
     0: 'Não especificado',
-    1: 'Econômico/Básico',
+    1: 'Econômico',
     2: 'Intermediário',
     3: 'Premium',
-    4: 'Alto Luxo/Enterprise'
+    4: 'Luxo'
   };
   return descriptions[priceLevel] || 'Não especificado';
 };
