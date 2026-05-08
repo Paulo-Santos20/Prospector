@@ -26,7 +26,7 @@ export const searchPlaces = async (query, location) => {
           // FieldMask é CRÍTICO para economizar dinheiro.
           // Pedimos apenas os campos necessários.
           // websiteUri é o ouro aqui.
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.internationalPhoneNumber,places.rating,places.userRatingCount'
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.internationalPhoneNumber,places.rating,places.userRatingCount,places.priceLevel'
         }
       }
     );

@@ -2,9 +2,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, Phone, Mail, Share2, Facebook, Instagram,
   ExternalLink, AlertCircle, Sparkles, Palette, Type, Star,
-  UtensilsCrossed, Save, MessageSquare, Loader2, Globe, FileDown
+  UtensilsCrossed, Save, MessageSquare, Loader2, Globe, FileDown,
+  TrendingUp, Users, Clock
 } from 'lucide-react';
-import { type Lead, fetchLeadSocials } from '../features/search/services/searchService';
+import { type Lead, fetchLeadSocials, enrichLead } from '../features/search/services/searchService';
 import { ProposalModal } from '../features/leads/components/ProposalModal';
 import { saveLeadToCRM, updateLeadNotes } from '../features/crm/services/crmService';
 import { useState, useEffect } from 'react';
@@ -22,29 +23,51 @@ export default function LeadDetailsPage() {
   const [notes, setNotes] = useState(lead?.notes || '');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
-  // Estados para busca sob demanda
+  // Estados para busca sob demanda e enriquecimento
   const [socialLinks, setSocialLinks] = useState(lead?.analysis?.socialLinks || []);
   const [emails, setEmails] = useState<string[]>(lead?.analysis?.emails || []);
   const [loadingExtras, setLoadingExtras] = useState(false);
+  const [isEnriching, setIsEnriching] = useState(false);
+  const [enrichedData, setEnrichedData] = useState(lead?.analysis?.aiData);
 
-  // Efeito para buscar redes e emails apenas ao entrar na página
+  // Efeito para buscar redes, emails e enriquecer ao entrar na página
   useEffect(() => {
-    if (lead && ((!socialLinks || socialLinks.length === 0) || (!emails || emails.length === 0))) {
-      const loadExtras = async () => {
-        setLoadingExtras(true);
-        try {
-          const data = await fetchLeadSocials(lead.id, lead.displayName.text, lead.formattedAddress);
-          if (data.socialLinks) setSocialLinks(data.socialLinks);
-          if (data.emails) setEmails(data.emails);
-        } catch (error) {
-          console.error("Erro ao carregar dados extras", error);
-        } finally {
-          setLoadingExtras(false);
+    if (!lead) return;
+
+    const loadExtras = async () => {
+      setLoadingExtras(true);
+      try {
+        // Busca redes sociais e emails
+        const [socialData] = await Promise.all([
+          fetchLeadSocials(lead.id, lead.displayName.text, lead.formattedAddress)
+        ]);
+
+        if (socialData.socialLinks) setSocialLinks(socialData.socialLinks);
+        if (socialData.emails) setEmails(socialData.emails);
+      } catch (error) {
+        console.error("Erro ao carregar dados extras", error);
+      } finally {
+        setLoadingExtras(false);
+      }
+    };
+
+    const enrichLeadData = async () => {
+      setIsEnriching(true);
+      try {
+        const result = await enrichLead(lead.id);
+        if (result.aiData) {
+          setEnrichedData(result.aiData);
         }
-      };
-      loadExtras();
-    }
-  }, [lead]);
+      } catch (error) {
+        console.error("Erro ao enriquecer lead", error);
+      } finally {
+        setIsEnriching(false);
+      }
+    };
+
+    loadExtras();
+    enrichLeadData();
+  }, [lead?.id]);
 
   if (!lead) return (
     <div className="min-h-screen bg-background flex items-center justify-center text-slate-400 font-black uppercase tracking-widest">
@@ -53,7 +76,7 @@ export default function LeadDetailsPage() {
   );
 
   const { analysis } = lead;
-  const analysisData: any = analysis;
+  const analysisData: any = enrichedData || analysis?.aiData;
   const ds = analysisData?.aiData?.designStrategy;
 
   // Cores dinâmicas
@@ -126,17 +149,54 @@ export default function LeadDetailsPage() {
                 <MapPin className="w-4 h-4 mr-2" style={{ color: pColor }} /> {lead.formattedAddress}
               </div>
 
-              <div className="p-8 bg-red-500/5 border-l-8 border-red-500 rounded-r-[2rem] relative z-10 backdrop-blur-sm print:bg-red-50">
+              {isEnriching ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                  <span className="text-[12px] font-black text-amber-400 uppercase tracking-[0.3em]">Enriquecendo dados...</span>
+                </div>
+              ) : (
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-red-500/20 rounded-lg"><AlertCircle className="w-5 h-5 text-red-500" /></div>
                   <span className="text-[12px] font-black text-red-500 uppercase tracking-[0.3em]">Diagnóstico de Conversão</span>
+                  {analysisData?.urgency && (
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase ${
+                      analysisData.urgency === 'high' ? 'bg-red-500/30 text-red-400' :
+                      analysisData.urgency === 'medium' ? 'bg-amber-500/30 text-amber-400' :
+                      'bg-green-500/30 text-green-400'
+                    }`}>
+                      {analysisData.urgency === 'high' ? 'Urgente' : analysisData.urgency === 'medium' ? 'Médio' : 'Baixo'}
+                    </span>
+                  )}
+                  {analysisData?.conversionOpportunity && (
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase ${
+                      analysisData.conversionOpportunity === 'A' ? 'bg-purple-500/30 text-purple-400' :
+                      analysisData.conversionOpportunity === 'B' ? 'bg-blue-500/30 text-blue-400' :
+                      'bg-slate-500/30 text-slate-400'
+                    }`}>
+                      Opp. {analysisData.conversionOpportunity}
+                    </span>
+                  )}
                 </div>
-                <p className="text-xl text-slate-100 font-medium italic leading-relaxed print:text-slate-800">
-                  {analysis.status === 'NO_WEBSITE'
-                    ? "Ausência de domínio profissional detectada. A empresa depende 100% de redes sociais e marketplaces, perdendo autoridade e margem de lucro."
-                    : `"${analysisData?.aiData?.mainPainPoint || 'O site atual possui falhas de UX que podem estar drenando suas conversões diárias.'}"`}
+              )}
+              <p className="text-xl text-slate-100 font-medium italic leading-relaxed print:text-slate-800">
+                {analysis.status === 'NO_WEBSITE'
+                  ? "Ausência de domínio profissional detectada. A empresa depende 100% de redes sociais e marketplaces, perdendo autoridade e margem de lucro."
+                  : `"${analysisData?.mainPainPoint || 'O site atual possui falhas de UX que podem estar drenando suas conversões diárias.'}"`}
+              </p>
+              {analysisData?.diagnosisReasoning && (
+                <p className="text-sm text-slate-400 mt-3 italic">
+                  {analysisData.diagnosisReasoning}
                 </p>
-              </div>
+              )}
+              {analysisData?.keyIssues && analysisData.keyIssues.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {analysisData.keyIssues.map((issue: string, idx: number) => (
+                    <span key={idx} className="px-3 py-1 bg-slate-700/50 rounded-full text-xs text-slate-300">
+                      {issue}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* HISTÓRICO DE CONTATO (Oculto no PDF para manter sigilo) */}

@@ -1,8 +1,10 @@
 import express from 'express';
-import { getLeads } from '../controllers/leadsController.js'; // Importante o .js
+import { getLeads, enrichLead, getSocials } from '../controllers/leadsController.js';
 
 const router = express.Router();
 
 router.post('/search', getLeads);
+router.post('/enrich', enrichLead);
+router.post('/socials', getSocials);
 
 export default router;
