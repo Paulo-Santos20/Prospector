@@ -8,6 +8,23 @@ import { findEmailViaSearch } from '../services/googleSearchService.js';
 
 const limit = pLimit(2);
 
+const removeUndefined = (obj) => {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefined).filter(item => item !== undefined);
+  }
+  if (typeof obj === 'object') {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        result[key] = removeUndefined(value);
+      }
+    }
+    return result;
+  }
+  return obj;
+};
+
 export const getLeads = async (req, res) => {
   try {
     const { niche, location } = req.body;
@@ -93,12 +110,12 @@ export const enrichLead = async (req, res) => {
     });
 
     await leadRef.update({
-      'analysis.socialLinks': socials.length > 0 ? socials : leadData.analysis?.socialLinks,
+      'analysis.socialLinks': socials.length > 0 ? socials : (leadData.analysis?.socialLinks || []),
       'analysis.emails': leadData.analysis?.emails || [],
-      'analysis.aiData': {
+      'analysis.aiData': removeUndefined({
         ...leadData.analysis?.aiData,
         ...enrichment.aiData
-      },
+      }),
       'analysis.enrichedAt': admin.firestore.Timestamp.fromDate(new Date(enrichment.enrichedAt)),
       updatedAt: admin.firestore.Timestamp.now()
     });
