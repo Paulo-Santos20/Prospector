@@ -68,6 +68,9 @@ export default function DashboardPage() {
           </div>
           
           <div className="flex items-center gap-4">
+            <Link to="/no-website" className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-xs font-bold px-4 py-2 rounded-xl transition-all border border-red-500/30 hover:border-red-500">
+              <AlertCircle className="w-4 h-4" /> Sem Site
+            </Link>
             <Link to="/crm" className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all border border-slate-700 hover:border-primary shadow-lg">
               <Layout className="w-4 h-4 text-primary" /> Meu CRM
             </Link>
