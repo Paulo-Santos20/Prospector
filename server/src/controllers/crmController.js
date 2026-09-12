@@ -15,7 +15,7 @@ export const saveToCRM = async (req, res) => {
 
     res.status(200).json({ message: 'Lead adicionado ao CRM com sucesso!' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Erro interno' });
   }
 };
 
@@ -26,7 +26,7 @@ export const getCRMLeads = async (req, res) => {
     const leads = snapshot.docs.map(doc => doc.data());
     res.status(200).json(leads);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Erro interno' });
   }
 };
 
@@ -39,11 +39,12 @@ export const updateCRMLead = async (req, res) => {
     const updateData = {};
     if (crmStatus) updateData.crmStatus = crmStatus;
     if (notes !== undefined) updateData.notes = notes;
+    if (req.body.proposalData) updateData.proposalData = req.body.proposalData;
 
     await db.collection('crm_leads').doc(id).update(updateData);
     
     res.status(200).json({ message: 'CRM atualizado com sucesso!' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Erro interno' });
   }
 };

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 import { searchLeads } from '../features/search/services/searchService';
-import { LeadCard } from '../components/LeadCard'; // Verifique se este caminho está certo no seu projeto
+import { LeadCard } from '../features/leads/components/LeadCard';
 
 export default function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();

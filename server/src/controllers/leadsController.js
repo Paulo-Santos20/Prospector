@@ -6,7 +6,7 @@ import { analyzeWebsite, enrichLeadWithFullDiagnosis } from '../services/analyze
 import { findSocialLinks } from '../services/socialScraper.js';
 import { findEmailViaSearch } from '../services/googleSearchService.js';
 
-const limit = pLimit(2);
+const limit = pLimit(5);
 
 const removeUndefined = (obj) => {
   if (obj === null || obj === undefined) return obj;
@@ -64,7 +64,7 @@ export const getLeads = async (req, res) => {
     res.json({ count: enrichedLeads.length, leads: enrichedLeads });
   } catch (error) {
     console.error('getLeads error:', error);
-    res.status(500).json({ error: 'Erro ao buscar leads', details: error.message });
+    res.status(500).json({ error: 'Erro ao buscar leads' });
   }
 };
 

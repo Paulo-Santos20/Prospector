@@ -89,9 +89,9 @@ export default function KanbanPage() {
                       onDragStart={(e) => handleDragStart(e, lead.id)}
                       className="bg-slate-800 border border-slate-700 p-4 rounded-2xl cursor-grab active:cursor-grabbing hover:border-primary transition-all shadow-lg group"
                     >
-                      <h3 className="text-sm font-bold text-white mb-1">{lead.displayName.text}</h3>
+                      <h3 className="text-sm font-bold text-white mb-1">{lead.displayName?.text || 'Sem nome'}</h3>
                       <div className="flex items-center text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-3">
-                        <MapPin className="w-3 h-3 mr-1" /> {lead.formattedAddress.split(',')[0]}
+                        <MapPin className="w-3 h-3 mr-1" /> {lead.formattedAddress?.split(',')[0] || ''}
                       </div>
                       {lead.notes && (
                          <p className="text-xs text-slate-300 italic border-l-2 border-primary pl-2 mb-2 line-clamp-2">

@@ -1,11 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { 
-  Loader2, Sparkles, AlertCircle, 
-  Globe, MapPin, Star, Mail, 
-  Instagram, Facebook, ExternalLink, 
+  Loader2, AlertCircle, 
+  Globe, MapPin, Star, 
   TrendingUp, Search, Layout
 } from 'lucide-react';
 import { searchLeads } from '../features/search/services/searchService';
@@ -140,6 +138,7 @@ export default function NoWebsitePage() {
 
 function NoWebsiteCard({ lead }: { lead: any }) {
   const [isSaved, setIsSaved] = useState(false);
+  const navigate = useNavigate();
   const { analysis } = lead;
 
   const handleSave = async (e: any) => {
@@ -158,7 +157,10 @@ function NoWebsiteCard({ lead }: { lead: any }) {
   };
 
   return (
-    <div className="bg-surface border border-slate-700 rounded-2xl p-6 hover:border-red-500 transition-all shadow-lg h-full flex flex-col relative group">
+    <div 
+      className="bg-surface border border-slate-700 rounded-2xl p-6 hover:border-red-500 transition-all shadow-lg h-full flex flex-col relative group cursor-pointer"
+      onClick={() => navigate('/lead/' + lead.id, { state: { lead } })}
+    >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-bold text-white truncate">{lead.displayName.text}</h3>

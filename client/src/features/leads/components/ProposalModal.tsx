@@ -1,5 +1,5 @@
 import { Copy, Check, X, FileText, Send, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { type Lead } from '../../search/services/searchService';
 
 interface ProposalModalProps {
@@ -11,6 +11,12 @@ interface ProposalModalProps {
 // ATENÇÃO: O 'export const' aqui é o que resolve o seu erro TS2305
 export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => {
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    if (isOpen) window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
