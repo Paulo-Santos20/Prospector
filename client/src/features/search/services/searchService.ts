@@ -50,16 +50,21 @@ export interface SearchResponse {
   leads: Lead[];
 }
 
-export const searchLeads = async (niche: string, location: string): Promise<SearchResponse> => {
+export const searchLeads = async (niche: string, location: string, provider: string = 'overpass'): Promise<SearchResponse> => {
   try {
-    console.log('[Search] Searching for:', niche, 'in', location);
-    const response = await api.post<SearchResponse>('/leads/search', { niche, location });
+    console.log('[Search] Searching for:', niche, 'in', location, 'via', provider);
+    const response = await api.post<SearchResponse>('/leads/search', { niche, location, provider });
     console.log('[Search] Success:', response.data.count, 'leads found');
     return response.data;
   } catch (error: any) {
     console.error('[Search] Error:', error?.response?.data || error?.message || error);
     throw error;
   }
+};
+
+export const getProviderStatus = async () => {
+  const response = await api.get('/leads/provider-status');
+  return response.data;
 };
 
 export const fetchLeadSocials = async (id: string, name: string, location: string) => {

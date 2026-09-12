@@ -7,7 +7,7 @@ import {
   Globe, ShieldAlert, Users, Send, Target, Layout
 } from 'lucide-react';
 
-import { searchLeads } from '../features/search/services/searchService';
+import { searchLeads, getProviderStatus } from '../features/search/services/searchService';
 import { LeadCard } from '../features/leads/components/LeadCard';
 
 export default function DashboardPage() {
@@ -19,6 +19,7 @@ export default function DashboardPage() {
 
   const [nicheInput, setNicheInput] = useState(nicheParam);
   const [locationInput, setLocationInput] = useState(locationParam);
+  const [provider, setProvider] = useState('overpass');
 
   const { data: stats } = useQuery({
     queryKey: ['global-stats'],
@@ -31,9 +32,15 @@ export default function DashboardPage() {
     refetchInterval: 30000,
   });
 
+  const { data: providerStatus } = useQuery({
+    queryKey: ['provider-status'],
+    queryFn: getProviderStatus,
+    refetchInterval: 30000,
+  });
+
   const { data, isFetching } = useQuery({
-    queryKey: ['leads', nicheParam, locationParam],
-    queryFn: () => searchLeads(nicheParam, locationParam),
+    queryKey: ['leads', nicheParam, locationParam, provider],
+    queryFn: () => searchLeads(nicheParam, locationParam, provider),
     enabled: !!nicheParam && !!locationParam,
     staleTime: 1000 * 60 * 5,
   });
@@ -91,7 +98,16 @@ export default function DashboardPage() {
              <Sparkles className="w-5 h-5 text-amber-400" /> Inteligência de Mineração
            </h1>
            <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 relative z-10">
-              <input 
+               <select 
+                 value={provider} 
+                 onChange={(e) => setProvider(e.target.value)}
+                 className="bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition text-sm"
+               >
+                 <option value="overpass">Overpass (Gratis)</option>
+                 <option value="foursquare">Foursquare</option>
+                 <option value="google" disabled>Google Places (Billing)</option>
+               </select>
+               <input 
                 type="text" placeholder="Nicho (ex: Clínicas de Estética)" value={nicheInput}
                 onChange={(e) => setNicheInput(e.target.value)}
                 className="flex-1 bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition"

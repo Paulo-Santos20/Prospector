@@ -2,9 +2,12 @@ import pLimit from 'p-limit';
 import { db } from '../config/firebase.js';
 import admin from 'firebase-admin';
 import { searchPlaces } from '../services/googleService.js';
+import { searchOverpass } from '../services/overpassService.js';
+import { searchFoursquare } from '../services/foursquareService.js';
 import { analyzeWebsite, enrichLeadWithFullDiagnosis } from '../services/analyzerService.js';
 import { findSocialLinks } from '../services/socialScraper.js';
 import { findEmailViaSearch } from '../services/googleSearchService.js';
+import { incrementUsage, getProviderStatus as getStatus } from '../services/providerMonitor.js';
 
 const limit = pLimit(5);
 
@@ -28,7 +31,20 @@ const removeUndefined = (obj) => {
 export const getLeads = async (req, res) => {
   try {
     const { niche, location } = req.body;
-    const rawLeads = await searchPlaces(niche, location);
+    const provider = req.body.provider || 'overpass';
+
+    let rawLeads;
+    if (provider === 'google') {
+      rawLeads = await searchPlaces(niche, location);
+    } else if (provider === 'overpass') {
+      rawLeads = await searchOverpass(niche, location);
+    } else if (provider === 'foursquare') {
+      rawLeads = await searchFoursquare(niche, location);
+    } else {
+      return res.status(400).json({ error: 'Provider inválido' });
+    }
+
+    incrementUsage(provider);
 
     const enrichedLeads = await Promise.all(
       rawLeads.map((place) =>
@@ -177,4 +193,8 @@ export const getLeadById = async (req, res) => {
     console.error("Erro ao buscar lead por ID:", error);
     res.status(500).json({ error: 'Erro ao buscar lead' });
   }
+};
+
+export const getProviderStatus = async (req, res) => {
+  res.json({ providers: getStatus() });
 };
