@@ -97,16 +97,19 @@ export default function DashboardPage() {
            <h1 className="text-2xl font-black mb-6 flex items-center gap-2 italic uppercase">
              <Sparkles className="w-5 h-5 text-amber-400" /> Inteligência de Mineração
            </h1>
-           <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 relative z-10">
-               <select 
-                 value={provider} 
-                 onChange={(e) => setProvider(e.target.value)}
-                 className="bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition text-sm"
-               >
-                 <option value="overpass">Overpass (Gratis)</option>
-                 <option value="foursquare">Foursquare</option>
-                 <option value="google" disabled>Google Places (Billing)</option>
-               </select>
+           <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 relative z-10 items-center">
+               <div className="flex items-center gap-2">
+                 <select 
+                   value={provider} 
+                   onChange={(e) => setProvider(e.target.value)}
+                   className="bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition text-sm"
+                 >
+                   <option value="overpass">Overpass (Gratis)</option>
+                   <option value="foursquare">Foursquare</option>
+                   <option value="google" disabled>Google Places (Billing)</option>
+                 </select>
+                 <span className={`w-2.5 h-2.5 rounded-full ${providerStatus?.providers?.[provider]?.available !== false ? 'bg-emerald-400' : 'bg-red-400'}`} />
+               </div>
                <input 
                 type="text" placeholder="Nicho (ex: Clínicas de Estética)" value={nicheInput}
                 onChange={(e) => setNicheInput(e.target.value)}
