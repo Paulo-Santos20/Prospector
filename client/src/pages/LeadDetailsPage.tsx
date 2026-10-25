@@ -4,7 +4,7 @@ import {
   ExternalLink, AlertCircle, Sparkles, Palette, Type, Star,
   UtensilsCrossed, Save, MessageSquare, Loader2, Globe, FileDown
 } from 'lucide-react';
-import { type Lead, fetchLeadSocials, enrichLead, fetchLeadById } from '../features/search/services/searchService';
+import { type Lead, enrichLead, fetchLeadById } from '../features/search/services/searchService';
 import { ProposalModal } from '../features/leads/components/ProposalModal';
 import { saveLeadToCRM, updateLeadNotes } from '../features/crm/services/crmService';
 import { useState, useEffect } from 'react';
@@ -33,18 +33,17 @@ export default function LeadDetailsPage() {
   // Estados para Modal, CRM e Notas
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [notes, setNotes] = useState(lead?.notes || '');
+  const [notes, setNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
-  // Estados para busca sob demanda e enriquecimento
-  const [socialLinks, setSocialLinks] = useState(lead?.analysis?.socialLinks || []);
-  const [emails, setEmails] = useState<string[]>(lead?.analysis?.emails || []);
-  const [loadingExtras, setLoadingExtras] = useState(false);
+  // Dados de contato já vêm da análise do site; enriquecimento só gera o diagnóstico.
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichedData, setEnrichedData] = useState(lead?.analysis?.aiData);
 
   const analysis = lead?.analysis;
   const analysisData = enrichedData || analysis?.aiData;
+  const socialLinks = analysis?.socialLinks || [];
+  const emails = analysis?.emails || [];
 
   // Helper functions
   const formatFollowers = (count: number): string => {
@@ -63,49 +62,33 @@ export default function LeadDetailsPage() {
     </div>
   );
 
-// Efeito para buscar redes, emails e enriquecer ao entrar na página
+  const leadId = lead?.id;
+
   useEffect(() => {
-    if (!lead) return;
+    if (!leadId) return;
 
     let isMounted = true;
-
-    const loadExtras = async () => {
-      setLoadingExtras(true);
-      try {
-        const [socialData] = await Promise.all([
-          fetchLeadSocials(lead.id, lead.displayName.text, lead.formattedAddress)
-        ]);
-
-        if (isMounted) {
-          if (socialData.socialLinks) setSocialLinks(socialData.socialLinks);
-          if (socialData.emails) setEmails(socialData.emails);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar dados extras", error);
-      } finally {
-        if (isMounted) setLoadingExtras(false);
-      }
-    };
 
     const enrichLeadData = async () => {
       setIsEnriching(true);
       try {
-        const result = await enrichLead(lead.id);
+        const result = await enrichLead(leadId);
         if (isMounted && result.aiData) {
           setEnrichedData(result.aiData);
         }
       } catch (error) {
-        console.error("Erro ao enriquecer lead", error);
+        console.error('Erro ao enriquecer lead', error);
       } finally {
         if (isMounted) setIsEnriching(false);
       }
     };
 
-    loadExtras();
     enrichLeadData();
 
-    return () => { isMounted = false; };
-  }, [lead?.id]);
+    return () => {
+      isMounted = false;
+    };
+  }, [leadId]);
 
   if (loadingLead) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center text-slate-400">
@@ -135,9 +118,9 @@ export default function LeadDetailsPage() {
     }
   };
 
-  const ds = analysisData as any;
-  const pColor = '#3B82F6';
-  const sColor = '#6366F1';
+  const design = analysisData?.designStrategy;
+  const pColor = design?.primaryColor || '#3B82F6';
+  const sColor = design?.secondaryColor || '#6366F1';
 
   const handleSaveNotes = async () => {
     setIsSavingNotes(true);
@@ -253,7 +236,7 @@ export default function LeadDetailsPage() {
               {/* SPECIFIC ISSUES */}
               {analysisData?.specificIssues && analysisData.specificIssues.length > 0 && (
                 <div className="space-y-2 mt-4">
-                  {analysisData.specificIssues.map((issue: any, idx: number) => (
+                  {analysisData.specificIssues.map((issue, idx) => (
                     <div key={idx} className="flex items-start gap-3">
                       <span className={`text-[10px] px-2 py-1 rounded uppercase font-bold ${
                         issue.impact === 'high' ? 'bg-red-500/30 text-red-400' :
@@ -322,22 +305,22 @@ export default function LeadDetailsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50 print:border-slate-300 print:bg-slate-50">
                       <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Títulos</span></div>
-                      <p className="text-sm font-black text-white truncate print:text-slate-900">{ds?.typography?.heading || 'Montserrat'}</p>
+                      <p className="text-sm font-black text-white truncate print:text-slate-900">{design?.typography?.heading || 'Montserrat'}</p>
                     </div>
                     <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50 print:border-slate-300 print:bg-slate-50">
                       <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Corpo</span></div>
-                      <p className="text-sm font-black text-white truncate print:text-slate-900">{ds?.typography?.body || 'Inter'}</p>
+                      <p className="text-sm font-black text-white truncate print:text-slate-900">{design?.typography?.body || 'Inter'}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-6">
                   <div className="p-6 bg-background/40 rounded-[2rem] border border-slate-800 print:border-slate-300 print:bg-slate-50">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Estilo: <span className="text-white ml-2 italic uppercase print:text-slate-900">{ds?.style || 'Contemporâneo'}</span></p>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Estilo: <span className="text-white ml-2 italic uppercase print:text-slate-900">{design?.style || 'Contemporâneo'}</span></p>
                     <p className="text-sm text-slate-300 italic font-medium leading-relaxed mb-6 print:text-slate-700">
-                      "{ds?.designReasoning || 'Escolha visual focada em elevar o valor percebido da marca no ambiente digital.'}"
+                      "{design?.designReasoning || 'Escolha visual focada em elevar o valor percebido da marca no ambiente digital.'}"
                     </p>
-                    <a href={ds?.referenceSite || 'https://www.behance.net'} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all text-primary print:border-slate-300">
+                    <a href={design?.referenceSite || 'https://www.behance.net'} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full p-4 bg-white/5 rounded-xl text-[10px] font-black uppercase border border-white/5 hover:bg-white/10 transition-all text-primary print:border-slate-300">
                         <ExternalLink className="w-3 h-3" /> Ver Referência de Estilo
                       </a>
                   </div>
@@ -379,12 +362,6 @@ export default function LeadDetailsPage() {
             </div>
 
             <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden print:border-slate-300 print:shadow-none print:break-inside-avoid">
-              {loadingExtras && (
-                <div className="absolute top-0 left-0 w-full h-1 bg-slate-800 print:hidden">
-                  <div className="h-full bg-primary animate-pulse w-1/2"></div>
-                </div>
-              )}
-
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-8 border-b border-slate-800 pb-3 print:border-slate-300">Business Intelligence</h3>
 
               <div className="space-y-6">
@@ -396,17 +373,13 @@ export default function LeadDetailsPage() {
                 </div>
 
                 {/* E-MAILS */}
-                {(emails.length > 0 || loadingExtras) && (
+                {emails.length > 0 && (
                   <div className="flex items-start gap-4">
                     <div className="p-3 bg-primary/10 rounded-xl text-primary print:bg-slate-100"><Mail className="w-5 h-5" /></div>
                     <div className="space-y-2 w-full">
-                      {loadingExtras && emails.length === 0 ? (
-                        <span className="text-xs italic text-slate-500 block mt-2 print:hidden">Buscando e-mails...</span>
-                      ) : (
-                        emails.map((e: string, idx: number) => (
-                          <span key={idx} className="block text-xs font-mono text-blue-300 select-all font-bold border-b border-slate-800 pb-2 last:border-0 print:text-slate-700 print:border-slate-200">{e}</span>
-                        ))
-                      )}
+                      {emails.map((email, idx) => (
+                        <span key={idx} className="block text-xs font-mono text-blue-300 select-all font-bold border-b border-slate-800 pb-2 last:border-0 print:text-slate-700 print:border-slate-200">{email}</span>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -427,16 +400,11 @@ export default function LeadDetailsPage() {
 
               {/* LISTAGEM DE REDES SOCIAIS E MARKETPLACES */}
               <div className="flex justify-center flex-wrap gap-4 mt-10 pt-6 border-t border-slate-800 print:border-slate-300">
-                {loadingExtras && socialLinks.length === 0 ? (
-                  <div className="flex flex-col items-center gap-2 animate-pulse w-full print:hidden">
-                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                    <span className="text-[8px] font-black uppercase text-slate-500">Rastreando Redes...</span>
-                  </div>
-                ) : socialLinks && socialLinks.length > 0 ? (
-                  socialLinks.map((s: any, i: number) => (
-                    <a key={i} href={s.url} target="_blank" rel="noreferrer" className="p-4 bg-slate-900 border border-slate-700 rounded-2xl hover:border-primary transition-all flex flex-col items-center gap-2 group print:border-slate-300 print:bg-slate-50">
-                      {getSocialIcon(s.network)}
-                      <span className="text-[8px] uppercase font-bold text-slate-500 group-hover:text-white transition-colors print:text-slate-800">{s.network}</span>
+                {socialLinks.length > 0 ? (
+                  socialLinks.map((social, i) => (
+                    <a key={i} href={social.url} target="_blank" rel="noreferrer" className="p-4 bg-slate-900 border border-slate-700 rounded-2xl hover:border-primary transition-all flex flex-col items-center gap-2 group print:border-slate-300 print:bg-slate-50">
+                      {getSocialIcon(social.network)}
+                      <span className="text-[8px] uppercase font-bold text-slate-500 group-hover:text-white transition-colors print:text-slate-800">{social.network}</span>
                     </a>
                   ))
                 ) : (

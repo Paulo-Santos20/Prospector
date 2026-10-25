@@ -1,12 +1,16 @@
-import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+﻿import { useState, useMemo, type MouseEvent } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Loader2, AlertCircle, 
   Globe, MapPin, Star, 
   TrendingUp, Search, Layout
 } from 'lucide-react';
-import { searchLeads } from '../features/search/services/searchService';
+import {
+  providerAttribution,
+  DEFAULT_PROVIDER,
+  type Lead,
+} from '../features/search/services/searchService';
+import { useLeadSearch } from '../features/search/hooks/useLeadSearch';
 import { saveLeadToCRM } from '../features/crm/services/crmService';
 
 export default function NoWebsitePage() {
@@ -18,12 +22,10 @@ export default function NoWebsitePage() {
   const nicheParam = searchParams.get('niche') || '';
   const locationParam = searchParams.get('location') || '';
 
-  const { data, isFetching } = useQuery({
-    queryKey: ['leads', nicheParam, locationParam],
-    queryFn: () => searchLeads(nicheParam, locationParam),
-    enabled: !!nicheParam && !!locationParam,
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data, isFetching, isError, error, refetch } = useLeadSearch(
+    nicheParam,
+    locationParam
+  );
 
   const noWebsiteLeads = useMemo(() => {
     if (!data?.leads) return [];
@@ -38,6 +40,12 @@ export default function NoWebsitePage() {
         }
       });
   }, [data, sortBy]);
+
+  const totalLeads = data?.leads.length ?? 0;
+  const analyzingLeads =
+    data?.leads.filter((lead) => lead.analysis?.status === 'ANALYZING').length ?? 0;
+  const analyzedLeads = totalLeads - analyzingLeads;
+  const progress = totalLeads ? Math.round((analyzedLeads / totalLeads) * 100) : 0;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +97,47 @@ export default function NoWebsitePage() {
               {isFetching ? <Loader2 className="animate-spin" /> : 'Encontrar Sem Site'}
             </button>
           </form>
+          <p className="mt-3 text-[10px] text-slate-500 font-medium">
+            {providerAttribution(DEFAULT_PROVIDER)}
+          </p>
         </div>
+
+        {isError && (
+          <div className="mb-8 flex items-start gap-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-2xl p-5 text-sm">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <div className="flex-1">
+              <p>{error instanceof Error ? error.message : 'Não foi possível buscar leads.'}</p>
+              {totalLeads > 0 && (
+                <p className="mt-1 text-xs text-red-400">
+                  {analyzedLeads} de {totalLeads} leads analisados. Resultados parciais mantidos.
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => refetch()}
+              className="shrink-0 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase"
+            >
+              {totalLeads > 0 ? 'Continuar' : 'Tentar novamente'}
+            </button>
+          </div>
+        )}
+
+        {isFetching && totalLeads > 0 && (
+          <div className="mb-8 bg-surface border border-slate-700 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-2 text-[10px] font-black uppercase tracking-widest">
+              <span className="text-slate-400 flex items-center gap-2">
+                <Loader2 className="w-3 h-3 animate-spin text-red-400" /> Analisando com IA
+              </span>
+              <span className="text-red-400">{analyzedLeads}/{totalLeads}</span>
+            </div>
+            <div className="h-2 bg-background rounded-full overflow-hidden">
+              <div
+                className="h-full bg-red-500 transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {data?.leads && (
           <div className="flex flex-wrap items-center gap-4 mb-8">
@@ -125,7 +173,7 @@ export default function NoWebsitePage() {
           ))}
         </div>
 
-        {!isFetching && nicheParam && noWebsiteLeads.length === 0 && (
+        {!isFetching && !isError && nicheParam && noWebsiteLeads.length === 0 && (
           <div className="text-center py-20">
             <AlertCircle className="w-12 h-12 text-slate-600 mx-auto mb-4" />
             <p className="text-slate-400">Nenhuma empresa sem site encontrada nesta busca</p>
@@ -136,18 +184,35 @@ export default function NoWebsitePage() {
   );
 }
 
-function NoWebsiteCard({ lead }: { lead: any }) {
+function NoWebsiteCard({ lead }: { lead: Lead }) {
   const [isSaved, setIsSaved] = useState(false);
   const navigate = useNavigate();
   const { analysis } = lead;
 
-  const handleSave = async (e: any) => {
+  if (analysis.status === 'ANALYZING') {
+    return (
+      <div className="bg-surface border border-slate-700/50 rounded-2xl p-6 shadow-lg h-full flex flex-col relative animate-pulse">
+        <h3 className="text-lg font-bold text-white/60 truncate">{lead.displayName.text}</h3>
+        <p className="text-xs text-slate-500 flex items-center truncate mb-6">
+          <MapPin className="w-3 h-3 mr-1 shrink-0" /> {lead.formattedAddress.split(',')[0]}
+        </p>
+        <div className="bg-slate-800/30 p-4 rounded-xl flex-grow mb-4 flex flex-col items-center justify-center gap-3 border border-slate-700/50">
+          <Loader2 className="w-6 h-6 text-red-400 animate-spin" />
+          <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest text-center">
+            IA avaliando presença digital...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const handleSave = async (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    try { 
-      await saveLeadToCRM(lead); 
-      setIsSaved(true); 
-    } catch (e) { 
-      console.error(e); 
+    try {
+      await saveLeadToCRM(lead);
+      setIsSaved(true);
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -175,17 +240,17 @@ function NoWebsiteCard({ lead }: { lead: any }) {
 
       <div className="flex flex-wrap gap-2 mb-4">
         <span className="bg-red-500/20 text-red-400 text-[10px] font-bold px-2 py-1 rounded-lg uppercase">Sem Site</span>
-        {lead.rating > 0 && (
+        {lead.rating && lead.rating > 0 && (
           <span className="bg-amber-500/20 text-amber-400 text-[10px] font-bold px-2 py-1 rounded-lg flex items-center">
             <Star className="w-3 h-3 mr-1 fill-current" /> {lead.rating.toFixed(1)}
           </span>
         )}
-        {lead.userRatingCount > 0 && (
+        {lead.userRatingCount && lead.userRatingCount > 0 && (
           <span className="bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-1 rounded-lg">
             {lead.userRatingCount} reviews
           </span>
         )}
-        {lead.priceLevel > 0 && (
+        {lead.priceLevel && lead.priceLevel > 0 && (
           <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-1 rounded-lg">
             {getPriceLabel(lead.priceLevel)}
           </span>
@@ -198,9 +263,9 @@ function NoWebsiteCard({ lead }: { lead: any }) {
           {analysis?.aiData?.mainPainPoint || 'Empresa sem presença digital própria'}
         </p>
         
-        {analysis?.aiData?.specificIssues?.length > 0 && (
+        {analysis?.aiData?.specificIssues && analysis.aiData.specificIssues.length > 0 && (
           <div className="mt-3 space-y-1">
-            {analysis.aiData.specificIssues.slice(0, 2).map((issue: any, i: number) => (
+            {analysis.aiData.specificIssues.slice(0, 2).map((issue, i) => (
               <p key={i} className="text-[10px] text-slate-400 flex items-center gap-1">
                 <AlertCircle className="w-3 h-3 text-red-400" /> {issue.description}
               </p>

@@ -1,35 +1,37 @@
+import fs from 'node:fs';
 import admin from 'firebase-admin';
-import { readFileSync, existsSync } from 'fs';
-import path from 'path';
+import { env, hasFirebaseCredentials, localFirebasePath } from './env.js';
 
-let serviceAccount;
-
-try {
-  // 1. TENTA CARREGAR DA NUVEM (Variável de Ambiente do Render)
-  if (process.env.FIREBASE_JSON) {
-    serviceAccount = JSON.parse(process.env.FIREBASE_JSON);
-    console.log("✅ Chave do Firebase carregada da Variável de Ambiente (Render)!");
-  } 
-  // 2. TENTA CARREGAR DO PC LOCAL (Sua máquina)
-  else {
-    const localPath = path.resolve(process.cwd(), 'src/config/firebase-service-account.json');
-    if (existsSync(localPath)) {
-      serviceAccount = JSON.parse(readFileSync(localPath, 'utf8'));
-      console.log("✅ Chave do Firebase carregada do arquivo local!");
-    } else {
-      throw new Error('Credenciais do Firebase não encontradas na Variável nem no Arquivo!');
-    }
+const buildServiceAccount = () => {
+  if (env.FIREBASE_JSON) {
+    return JSON.parse(env.FIREBASE_JSON);
   }
 
-  // Inicializa o Banco de Dados
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log("✅ Conexão com Firebase Firestore estabelecida com sucesso!");
+  if (env.FIREBASE_PROJECT_ID && env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY) {
+    return {
+      project_id: env.FIREBASE_PROJECT_ID,
+      client_email: env.FIREBASE_CLIENT_EMAIL,
+      private_key: env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    };
   }
-} catch (error) {
-  console.error("❌ Erro Crítico no Firebase:", error.message);
+
+  if (fs.existsSync(localFirebasePath)) {
+    return JSON.parse(fs.readFileSync(localFirebasePath, 'utf8'));
+  }
+
+  return null;
+};
+
+const serviceAccount = hasFirebaseCredentials ? buildServiceAccount() : null;
+
+if (!admin.apps.length) {
+  admin.initializeApp(
+    serviceAccount
+      ? { credential: admin.credential.cert(serviceAccount) }
+      : { projectId: env.FIREBASE_PROJECT_ID || 'demo-prospector' }
+  );
 }
 
 export const db = admin.firestore();
+export const auth = admin.auth();
+export default admin;

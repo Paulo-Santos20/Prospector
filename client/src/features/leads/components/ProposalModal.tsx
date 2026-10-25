@@ -1,4 +1,4 @@
-import { Copy, Check, X, FileText, Send, Sparkles } from 'lucide-react';
+﻿import { Copy, Check, X, FileText, Send, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { type Lead } from '../../search/services/searchService';
 
@@ -8,7 +8,6 @@ interface ProposalModalProps {
   onClose: () => void;
 }
 
-// ATENÇÃO: O 'export const' aqui é o que resolve o seu erro TS2305
 export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => {
   const [copied, setCopied] = useState(false);
 
@@ -21,17 +20,13 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
   if (!isOpen) return null;
 
   const { analysis } = lead;
-  
-  // Ignorando tipagem estrita para acessar os dados dinâmicos da IA
-  const analysisData: any = analysis;
+  const ai = analysis.aiData;
 
   const generateCopy = () => {
-    const ai = analysisData?.aiData;
-    const owner = ai?.ownerName || 'Responsável';
     const item = ai?.featuredItem || 'excelente trabalho';
     const aiPain = ai?.mainPainPoint;
 
-    const greeting = `Olá, ${owner}! Tudo bem?`;
+    const greeting = 'Olá! Tudo bem?';
 
     const intro = `Vi o perfil da ${lead.displayName.text} no Google e notei que vocês são referência na região, especialmente pelo trabalho com ${item} (vi as ${lead.userRatingCount || 'várias'} avaliações positivas!).`;
     
@@ -72,7 +67,7 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
             </div>
             <div>
               <h2 className="text-xl font-black text-white leading-none">Proposta Inteligente</h2>
-              {analysisData?.aiData && (
+              {ai && (
                 <div className="flex items-center gap-1 mt-1">
                   <Sparkles className="w-3 h-3 text-amber-400" />
                   <span className="text-[10px] uppercase font-bold text-amber-400 tracking-widest">Enriquecido com IA Real</span>
@@ -86,14 +81,7 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
         </div>
 
         <div className="p-8">
-          <div className="flex justify-between items-center mb-4">
-            <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Script de Abordagem Personalizado</p>
-            {analysisData?.aiData?.ownerName && (
-              <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-bold">
-                Dono(a) identificado: {analysisData.aiData.ownerName}
-              </span>
-            )}
-          </div>
+          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-4">Script de Abordagem Personalizado</p>
           
           <div className="bg-background border border-slate-800 rounded-2xl p-6 relative group shadow-inner">
             <pre className="text-slate-300 whitespace-pre-wrap font-sans text-sm leading-relaxed max-h-[400px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-slate-700">
@@ -126,7 +114,7 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
 
         <div className="p-5 bg-slate-900/80 text-center border-t border-slate-800">
           <p className="text-[10px] text-slate-500 font-medium leading-relaxed italic">
-            Dica: Abordagens personalizadas com o nome do responsável e itens do cardápio/serviço <br /> têm 3x mais chance de receber uma resposta positiva.
+            Dica: Abordagens personalizadas com detalhes do negócio <br /> têm 3x mais chance de receber uma resposta positiva.
           </p>
         </div>
       </div>

@@ -152,11 +152,7 @@ export const THIRD_PARTY_DOMAINS = [
   'trampos.co',
 
   'carrefour.com.br',
-  'dia.com.br',
-
-  'gov.br',
-  'org.br',
-  'edu.br'
+  'dia.com.br'
 ];
 
 export const THIRD_PARTY_PATH_PATTERNS = [
@@ -249,14 +245,8 @@ export const SUSPICIOUS_TLDS = [
   '.loan',
   '.vip',
   '.fun',
-  '.cc',
   '.su',
-  '.pn',
-  '.ph',
-  '.ng',
-  '.ke',
-  '.rw',
-  '.pdf'
+  '.pn'
 ];
 
 export const PLATFORM_SUBDOMAINS = [
@@ -380,7 +370,6 @@ export const isThirdPartyUrl = (url) => {
   try {
     const urlObj = new URL(urlLower.startsWith('http') ? urlLower : 'https://' + urlLower);
     const hostname = urlObj.hostname.toLowerCase();
-    const pathname = urlObj.pathname;
 
     for (const domain of THIRD_PARTY_DOMAINS) {
       const domainLower = domain.toLowerCase();
@@ -389,21 +378,9 @@ export const isThirdPartyUrl = (url) => {
       }
     }
 
-    for (const pattern of THIRD_PARTY_PATH_PATTERNS) {
-      if (pattern.test(pathname)) {
-        return { isThirdParty: true, reason: `path:${pattern}` };
-      }
-    }
-
     for (const tld of SUSPICIOUS_TLDS) {
       if (hostname.endsWith(tld)) {
         return { isThirdParty: true, reason: `suspicious_tld:${tld}` };
-      }
-    }
-
-    for (const subdomain of PLATFORM_SUBDOMAINS) {
-      if (hostname.startsWith(subdomain) || hostname.includes('.' + subdomain)) {
-        return { isThirdParty: true, reason: `platform_subdomain:${subdomain}` };
       }
     }
   } catch {

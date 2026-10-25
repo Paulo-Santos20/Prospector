@@ -37,8 +37,19 @@ Retorne APENAS este JSON, sem texto adicional:
   "specificIssues": [
     { "type": "no_website|no_email|no_social|low_rating|high_competition|other", "impact": "high|medium|low", "description": "Descrição curta do problema" }
   ],
-  "recommendedActions": ["Ação 1", "Ação 2"]
-}`;
+  "recommendedActions": ["Ação 1", "Ação 2"],
+  "designStrategy": {
+    "style": "Ex: Minimalista, sofisticado, acolhedor",
+    "primaryColor": "#RRGGBB",
+    "secondaryColor": "#RRGGBB",
+    "typography": { "heading": "Fonte para títulos", "body": "Fonte para texto" },
+    "designReasoning": "Por que esse visual funciona para o negócio (até 25 palavras)",
+    "referenceSite": "https://exemplo-de-referencia.com"
+  },
+  "featuredItem": "Produto ou serviço que deve aparecer em destaque"
+}
+
+NUNCA invente nome de proprietário, e-mail, telefone ou qualquer dado de contato ausente nos dados fornecidos.`;
 
 const analyzeWithGroqKey = async (apiKey, contextDescription, cleanContent) => {
   const groq = new Groq({ apiKey });

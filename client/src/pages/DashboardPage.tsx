@@ -1,35 +1,48 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, Link } from 'react-router-dom';
-import axios from 'axios';
 import { 
   Loader2, Sparkles, AlertCircle, 
   Globe, ShieldAlert, Users, Send, Target, Layout
 } from 'lucide-react';
 
-import { searchLeads, getProviderStatus } from '../features/search/services/searchService';
+import {
+  getProviderStatus,
+  providerAttribution,
+  DEFAULT_PROVIDER,
+} from '../features/search/services/searchService';
+import { useLeadSearch } from '../features/search/hooks/useLeadSearch';
 import { LeadCard } from '../features/leads/components/LeadCard';
+import { UserMenu } from '../app/UserMenu';
+import { api } from '../lib/axios';
+
+interface GlobalStats {
+  totalLeads: number;
+  totalProposals: number;
+  rate: number;
+}
+
+type Filter = 'all' | 'no_website' | 'insecure' | 'not_responsive';
 
 export default function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeFilter, setActiveFilter] = useState<'all' | 'no_website' | 'insecure' | 'not_responsive'>('all');
+  const [activeFilter, setActiveFilter] = useState<Filter>('all');
 
   const nicheParam = searchParams.get('niche') || '';
   const locationParam = searchParams.get('location') || '';
 
   const [nicheInput, setNicheInput] = useState(nicheParam);
   const [locationInput, setLocationInput] = useState(locationParam);
-  const [provider, setProvider] = useState('overpass');
+  const [provider, setProvider] = useState(DEFAULT_PROVIDER);
 
   const { data: stats } = useQuery({
     queryKey: ['global-stats'],
     queryFn: async () => {
-      const res = await axios.get('https://prospector-api-mngo.onrender.com/api/stats').catch(() => ({ 
-        data: { totalLeads: 0, totalProposals: 0, rate: 12.5 } 
-      }));
+      const res = await api.get<GlobalStats>('/stats');
       return res.data;
     },
     refetchInterval: 30000,
+    retry: false,
   });
 
   const { data: providerStatus } = useQuery({
@@ -38,12 +51,11 @@ export default function DashboardPage() {
     refetchInterval: 30000,
   });
 
-  const { data, isFetching } = useQuery({
-    queryKey: ['leads', nicheParam, locationParam, provider],
-    queryFn: () => searchLeads(nicheParam, locationParam, provider),
-    enabled: !!nicheParam && !!locationParam,
-    staleTime: 1000 * 60 * 5,
-  });
+  const { data, isFetching, isError, error, refetch } = useLeadSearch(
+    nicheParam,
+    locationParam,
+    provider
+  );
 
   const filteredLeads = useMemo(() => {
     if (!data?.leads) return [];
@@ -51,12 +63,18 @@ export default function DashboardPage() {
       if (!l.analysis) return activeFilter === 'all';
       switch (activeFilter) {
         case 'no_website': return l.analysis.status === 'NO_WEBSITE' || !l.websiteUri;
-        case 'insecure': return l.analysis.status !== 'NO_WEBSITE' && l.websiteUri && l.analysis.isSecure === false;
-        case 'not_responsive': return l.analysis.status !== 'NO_WEBSITE' && l.websiteUri && l.analysis.isResponsive === false;
+        case 'insecure': return l.analysis.status !== 'NO_WEBSITE' && !!l.websiteUri && l.analysis.isSecure === false;
+        case 'not_responsive': return l.analysis.status !== 'NO_WEBSITE' && !!l.websiteUri && l.analysis.isResponsive === false;
         default: return true;
       }
     });
   }, [data, activeFilter]);
+
+  const totalLeads = data?.leads.length ?? 0;
+  const analyzingLeads =
+    data?.leads.filter((lead) => lead.analysis?.status === 'ANALYZING').length ?? 0;
+  const analyzedLeads = totalLeads - analyzingLeads;
+  const progress = totalLeads ? Math.round((analyzedLeads / totalLeads) * 100) : 0;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,16 +99,16 @@ export default function DashboardPage() {
             <Link to="/crm" className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all border border-slate-700 hover:border-primary shadow-lg">
               <Layout className="w-4 h-4 text-primary" /> Meu CRM
             </Link>
-            <div className="text-xs font-mono text-slate-500 hidden sm:block">v2.0</div>
+            <UserMenu />
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 mt-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <StatCard icon={<Users />} label="Leads Minerados" value={stats?.totalLeads || 0} color="text-blue-400" />
+          <StatCard icon={<Users />} label="Leads no CRM" value={stats?.totalLeads || 0} color="text-blue-400" />
           <StatCard icon={<Send />} label="Propostas Enviadas" value={stats?.totalProposals || 0} color="text-emerald-400" />
-          <StatCard icon={<Target />} label="Taxa de Resposta" value={`${stats?.rate || 0}%`} color="text-amber-400" />
+          <StatCard icon={<Target />} label="Taxa de Fechamento" value={`${stats?.rate || 0}%`} color="text-amber-400" />
         </div>
 
         <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-2xl mb-10 relative overflow-hidden">
@@ -104,11 +122,35 @@ export default function DashboardPage() {
                    onChange={(e) => setProvider(e.target.value)}
                    className="bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition text-sm"
                  >
-                   <option value="overpass">Overpass (Gratis)</option>
-                   <option value="foursquare">Foursquare</option>
+                   <option
+                     value="geoapify"
+                     disabled={providerStatus?.providers?.geoapify?.configured === false}
+                   >
+                     Geoapify (Grátis)
+                   </option>
+                   <option
+                     value="tomtom"
+                     disabled={providerStatus?.providers?.tomtom?.configured === false}
+                   >
+                     TomTom (Grátis)
+                   </option>
+                   <option value="overpass">Overpass (Fallback)</option>
+                   <option
+                     value="foursquare"
+                     disabled={providerStatus?.providers?.foursquare?.configured === false}
+                   >
+                     Foursquare
+                   </option>
                    <option value="google" disabled>Google Places (Billing)</option>
                  </select>
-                 <span className={`w-2.5 h-2.5 rounded-full ${providerStatus?.providers?.[provider]?.available !== false ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                 <span
+                   className={`w-2.5 h-2.5 rounded-full ${
+                     providerStatus?.providers?.[provider]?.configured !== false &&
+                     providerStatus?.providers?.[provider]?.available !== false
+                       ? 'bg-emerald-400'
+                       : 'bg-red-400'
+                   }`}
+                 />
                </div>
                <input 
                 type="text" placeholder="Nicho (ex: Clínicas de Estética)" value={nicheInput}
@@ -124,7 +166,47 @@ export default function DashboardPage() {
                 {isFetching ? <Loader2 className="animate-spin" /> : 'Prospectar IA'}
               </button>
            </form>
+           <p className="mt-3 text-[10px] text-slate-500 font-medium">
+             {providerAttribution(provider)}
+           </p>
         </div>
+
+        {isError && (
+          <div className="mb-8 flex items-start gap-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-2xl p-5 text-sm">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <div className="flex-1">
+              <p>{error instanceof Error ? error.message : 'Não foi possível buscar leads.'}</p>
+              {totalLeads > 0 && (
+                <p className="mt-1 text-xs text-red-400">
+                  {analyzedLeads} de {totalLeads} leads analisados. Resultados parciais mantidos.
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => refetch()}
+              className="shrink-0 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase"
+            >
+              {totalLeads > 0 ? 'Continuar' : 'Tentar novamente'}
+            </button>
+          </div>
+        )}
+
+        {isFetching && totalLeads > 0 && (
+          <div className="mb-8 bg-surface border border-slate-700 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-2 text-[10px] font-black uppercase tracking-widest">
+              <span className="text-slate-400 flex items-center gap-2">
+                <Loader2 className="w-3 h-3 animate-spin text-primary" /> Analisando com IA
+              </span>
+              <span className="text-primary">{analyzedLeads}/{totalLeads}</span>
+            </div>
+            <div className="h-2 bg-background rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {data?.leads && (
           <div className="flex flex-wrap gap-3 mb-8">
@@ -142,7 +224,7 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ icon, label, value, color }: any) {
+function StatCard({ icon, label, value, color }: { icon: ReactNode; label: string; value: number | string; color: string }) {
   return (
     <div className="bg-surface border border-slate-800 p-8 rounded-[2rem] shadow-xl relative group overflow-hidden">
       <div className={`absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-all group-hover:scale-110 ${color}`}>
@@ -154,8 +236,17 @@ function StatCard({ icon, label, value, color }: any) {
   );
 }
 
-function FilterButton({ active, onClick, icon, label, count, variant = 'primary' }: any) {
-  const styles: any = {
+type FilterVariant = 'primary' | 'danger' | 'warning';
+
+function FilterButton({ active, onClick, icon, label, count, variant = 'primary' }: {
+  active: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  label: string;
+  count: number;
+  variant?: FilterVariant;
+}) {
+  const styles: Record<FilterVariant, string> = {
     primary: active ? "bg-primary text-white" : "bg-surface text-slate-400",
     danger: active ? "bg-red-600 text-white" : "bg-surface text-slate-400 hover:border-red-500/50",
     warning: active ? "bg-amber-600 text-white" : "bg-surface text-slate-400 hover:border-amber-500/50",

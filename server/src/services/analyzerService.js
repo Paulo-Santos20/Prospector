@@ -1,27 +1,25 @@
-import axios from 'axios';
 import * as cheerio from 'cheerio';
 import {
   SOCIAL_PATTERNS,
   isThirdPartyUrl,
   extractEmailsFromText,
   extractEmailsFromMailtos,
-  CONTACT_PATHS
+  CONTACT_PATHS,
 } from '../utils/patterns.js';
 import { analyzeLeadWithAI } from './aiService.js';
+import { safeFetch } from './safeFetch.js';
+import { normalizeAiInsight } from '../schemas/ai.js';
+import { normalizeUrl } from '../utils/url.js';
 
-const TIMEOUT_MS = 10000;
-const AXIOS_CONFIG = {
-  headers: {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-    'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8'
-  },
-  timeout: TIMEOUT_MS
+const FETCH_OPTIONS = {
+  timeoutMs: 10_000,
+  maxBytes: 2 * 1024 * 1024,
 };
 
 const removeUndefined = (obj) => {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) {
-    return obj.map(removeUndefined).filter(item => item !== undefined);
+    return obj.map(removeUndefined).filter((item) => item !== undefined);
   }
   if (typeof obj === 'object') {
     const result = {};
@@ -35,61 +33,74 @@ const removeUndefined = (obj) => {
   return obj;
 };
 
-const scrapePageForEmails = async ($, baseUrl) => {
+const scrapePageForEmails = async ($) => {
   const emails = new Set();
 
-  const textToScan = $('body').text();
-  const textEmails = extractEmailsFromText(textToScan);
-  textEmails.forEach(e => emails.add(e));
-
-  const mailtoEmails = extractEmailsFromMailtos($);
-  mailtoEmails.forEach(e => emails.add(e));
+  extractEmailsFromText($('body').text()).forEach((email) => emails.add(email));
+  extractEmailsFromMailtos($).forEach((email) => emails.add(email));
 
   $('meta').each((_, el) => {
     const content = $(el).attr('content') || '';
-    const metaEmails = extractEmailsFromText(content);
-    metaEmails.forEach(e => emails.add(e));
+    extractEmailsFromText(content).forEach((email) => emails.add(email));
   });
 
-  const jsonLdScripts = $('script[type="application/ld+json"]');
-  jsonLdScripts.each((_, el) => {
+  $('script[type="application/ld+json"]').each((_, el) => {
     try {
       const content = $(el).html();
-      if (content) {
-        const data = JSON.parse(content);
-        const jsonEmails = extractEmailsFromText(JSON.stringify(data));
-        jsonEmails.forEach(e => emails.add(e));
-      }
-    } catch {}
+      if (!content) return;
+      const data = JSON.parse(content);
+      extractEmailsFromText(JSON.stringify(data)).forEach((email) => emails.add(email));
+    } catch {
+      // JSON-LD inválido: ignora
+    }
   });
 
   return Array.from(emails);
 };
 
 const scrapeContactPages = async (baseUrl) => {
-  const allEmails = new Set();
   const baseDomain = new URL(baseUrl).origin;
+  const pages = await Promise.allSettled(
+    CONTACT_PATHS.slice(0, 3).map(async (path) => {
+      const { text } = await safeFetch(baseDomain + path, FETCH_OPTIONS);
+      return scrapePageForEmails(cheerio.load(text));
+    })
+  );
 
-  for (const path of CONTACT_PATHS.slice(0, 5)) {
-    try {
-      const contactUrl = baseDomain + path;
-      const { data: html } = await axios.get(contactUrl, AXIOS_CONFIG);
-      const $ = cheerio.load(html);
-      const emails = await scrapePageForEmails($, contactUrl);
-      emails.forEach(e => allEmails.add(e));
-    } catch {
-      // Silently continue to next contact page
+  const allEmails = new Set();
+  for (const page of pages) {
+    if (page.status === 'fulfilled') {
+      page.value.forEach((email) => allEmails.add(email));
     }
   }
 
   return Array.from(allEmails);
 };
 
-export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0, priceLevel = 1, rating = 0, address = '') => {
-  const cleanUrl = url?.toLowerCase().trim() || '';
+const dedupeSocials = (socialLinks) => {
+  const seen = new Set();
+  return socialLinks.filter((link) => {
+    const key = `${link.network}:${link.url}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+export const analyzeWebsite = async (
+  url,
+  businessName = '',
+  userRatingCount = 0,
+  priceLevel = 1,
+  rating = 0,
+  address = ''
+) => {
+  const cleanUrl = normalizeUrl(url);
   const hasNoUrl = !cleanUrl;
 
-  const thirdPartyCheck = hasNoUrl ? { isThirdParty: false, reason: null } : isThirdPartyUrl(cleanUrl);
+  const thirdPartyCheck = hasNoUrl
+    ? { isThirdParty: false, reason: null }
+    : isThirdPartyUrl(cleanUrl);
   const isThirdParty = thirdPartyCheck.isThirdParty;
 
   const result = {
@@ -103,21 +114,21 @@ export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0
     status: 'UNKNOWN',
     isThirdParty: !!isThirdParty,
     aiData: null,
-    thirdPartyReason: thirdPartyCheck.reason
+    thirdPartyReason: thirdPartyCheck.reason,
   };
 
-  let htmlToAnalyze = "Empresa sem website próprio. Analise baseada apenas nos dados estruturados.";
+  let htmlToAnalyze =
+    'Empresa sem website próprio. Analise baseada apenas nos dados estruturados.';
 
   if (!hasNoUrl && !isThirdParty) {
     try {
       console.log(`[SCRAPING] Acessando site próprio: ${cleanUrl}`);
-      const { data: html } = await axios.get(cleanUrl, AXIOS_CONFIG);
-
+      const { text: html } = await safeFetch(cleanUrl, FETCH_OPTIONS);
       const $ = cheerio.load(html);
       htmlToAnalyze = $.html();
 
-      const homeEmails = await scrapePageForEmails($, cleanUrl);
-      homeEmails.forEach(e => result.emails.push(e));
+      const homeEmails = await scrapePageForEmails($);
+      homeEmails.forEach((email) => result.emails.push(email));
 
       if ($('meta[name="viewport"]').length > 0) result.isResponsive = true;
 
@@ -130,9 +141,9 @@ export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0
       });
 
       if (result.emails.length === 0) {
-        console.log(`[SCRAPING] Nenhum email na home, buscando páginas de contato...`);
+        console.log('[SCRAPING] Nenhum email na home, buscando páginas de contato...');
         const contactEmails = await scrapeContactPages(cleanUrl);
-        contactEmails.forEach(e => result.emails.push(e));
+        contactEmails.forEach((email) => result.emails.push(email));
       }
     } catch (error) {
       console.error(`[SCRAPING] Erro ao acessar ${cleanUrl}: ${error.message}`);
@@ -154,37 +165,26 @@ export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0
       socialLinksCount: result.socialLinks.length,
       socialLinks: result.socialLinks,
       priceLevel,
-      address
+      address,
     });
 
     if (aiInsight) {
       console.log(`[IA] Inteligência gerada com sucesso para: ${businessName}`);
-      result.aiData = {
-        mainPainPoint: aiInsight.mainPainPoint || 'Falta de presença digital otimizada',
-        urgency: aiInsight.urgency || 'medium',
-        conversionOpportunity: aiInsight.conversionOpportunity || 'B',
-        keyMetrics: aiInsight.keyMetrics || null,
-        specificIssues: aiInsight.specificIssues || [],
-        recommendedActions: aiInsight.recommendedActions || []
-      };
-
-      if (aiInsight.emails && Array.isArray(aiInsight.emails)) {
-        const aiEmails = extractEmailsFromText(aiInsight.emails.join(' '));
-        aiEmails.forEach(e => result.emails.push(e));
-      }
+      result.aiData = normalizeAiInsight(aiInsight);
     }
   } catch (aiError) {
-    console.error(`[IA] Erro na análise da Groq:`, aiError.message);
+    console.error('[IA] Erro na análise:', aiError.message);
     result.aiData = {
       mainPainPoint: 'Análise técnica indisponível no momento',
       urgency: 'medium',
       conversionOpportunity: 'B',
       specificIssues: [],
-      recommendedActions: []
+      recommendedActions: [],
     };
   }
 
-  result.emails = [...new Set(result.emails.map(e => e.toLowerCase()))];
+  result.emails = [...new Set(result.emails.map((email) => email.toLowerCase()))];
+  result.socialLinks = dedupeSocials(result.socialLinks);
 
   if (hasNoUrl || isThirdParty) {
     result.status = 'NO_WEBSITE';
@@ -202,7 +202,8 @@ export const analyzeWebsite = async (url, businessName = '', userRatingCount = 0
 
     result.opportunityScore = Math.min(techScore, 100);
     if (result.status !== 'ERROR_ACCESSING') {
-        result.status = result.opportunityScore >= 50 ? 'HIGH_OPPORTUNITY' : 'MODERN_SITE';
+      result.status =
+        result.opportunityScore >= 50 ? 'HIGH_OPPORTUNITY' : 'MODERN_SITE';
     }
   }
 
@@ -219,10 +220,10 @@ export const enrichLeadWithFullDiagnosis = async (leadData) => {
     priceLevel = 1,
     rating = 0,
     formattedAddress = '',
-    socialLinks = []
+    socialLinks = [],
   } = leadData;
 
-  const cleanUrl = websiteUri?.toLowerCase().trim() || '';
+  const cleanUrl = normalizeUrl(websiteUri);
   const hasNoUrl = !cleanUrl;
   const thirdPartyCheck = hasNoUrl ? { isThirdParty: false } : isThirdPartyUrl(cleanUrl);
   const isThirdParty = thirdPartyCheck.isThirdParty;
@@ -231,24 +232,28 @@ export const enrichLeadWithFullDiagnosis = async (leadData) => {
     isSecure: cleanUrl.startsWith('https'),
     isResponsive: false,
     emails: [],
-    socialLinks: []
+    socialLinks: [],
   };
 
-  let htmlToAnalyze = "Empresa sem website próprio. Analise baseada apenas nos dados estruturados.";
+  let htmlToAnalyze =
+    'Empresa sem website próprio. Analise baseada apenas nos dados estruturados.';
 
   if (!hasNoUrl && !isThirdParty) {
     try {
-      const { data: html } = await axios.get(cleanUrl, AXIOS_CONFIG);
+      const { text: html } = await safeFetch(cleanUrl, FETCH_OPTIONS);
       const $ = cheerio.load(html);
       htmlToAnalyze = $.html();
       localResult.isResponsive = $('meta[name="viewport"]').length > 0;
-      localResult.emails = await scrapePageForEmails($, cleanUrl);
-    } catch {}
+      localResult.emails = await scrapePageForEmails($);
+    } catch {
+      // Mantém os dados estruturados para a IA mesmo se o site falhar
+    }
   }
 
-  const socialInfo = socialLinks.length > 0
-    ? await getSocialMediaStats(socialLinks)
-    : { followerCount: 0, socialStats: {} };
+  const socialInfo =
+    socialLinks.length > 0
+      ? await getSocialMediaStats(socialLinks)
+      : { followerCount: 0, socialStats: {} };
 
   const aiInsight = await analyzeLeadWithAI({
     businessName,
@@ -264,26 +269,18 @@ export const enrichLeadWithFullDiagnosis = async (leadData) => {
     socialLinks,
     priceLevel,
     address: formattedAddress,
-    followerCount: socialInfo.followerCount
+    followerCount: socialInfo.followerCount,
   });
 
   return {
-    aiData: aiInsight ? removeUndefined({
-      mainPainPoint: aiInsight.mainPainPoint || 'Falta de presença digital otimizada',
-      urgency: aiInsight.urgency || 'medium',
-      conversionOpportunity: aiInsight.conversionOpportunity || 'B',
-      keyMetrics: aiInsight.keyMetrics || null,
-      specificIssues: aiInsight.specificIssues || [],
-      recommendedActions: aiInsight.recommendedActions || [],
-      socialStats: socialInfo.socialStats
-    }) : null,
-    enrichedAt: new Date().toISOString()
+    aiData: aiInsight
+      ? removeUndefined({
+          ...normalizeAiInsight(aiInsight),
+          socialStats: socialInfo.socialStats,
+        })
+      : null,
+    enrichedAt: new Date().toISOString(),
   };
 };
 
-const getSocialMediaStats = async (socialLinks) => {
-  const stats = {};
-  let totalFollowers = 0;
-
-  return { followerCount: totalFollowers, socialStats: stats };
-};
+const getSocialMediaStats = async () => ({ followerCount: 0, socialStats: {} });

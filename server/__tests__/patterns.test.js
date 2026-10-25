@@ -152,7 +152,10 @@ describe('patterns.js', () => {
           'https://mycompany.co.uk',
           'https://lojaonline.com.br',
           'https://site.photography',
-          'https://design.solutions'
+          'https://design.solutions',
+          'https://empresa.org.br',
+          'https://prefeitura.gov.br',
+          'https://universidade.edu.br'
         ];
 
         legitimateUrls.forEach(url => {
@@ -168,14 +171,13 @@ describe('patterns.js', () => {
         expect(result.isThirdParty).toBe(true);
       });
 
-      test('should detect shop.name.com as platform subdomain', () => {
-        const result = isThirdPartyUrl('https://shop.legitbusiness.com');
-        expect(result.isThirdParty).toBe(true);
+      test('should NOT flag legitimate shop subdomains', () => {
+        expect(isThirdPartyUrl('https://shop.legitbusiness.com').isThirdParty).toBe(false);
       });
 
       test('should NOT flag legitimate subdomains', () => {
-        const result = isThirdPartyUrl('https://blog.realempresa.com');
-        expect(result.isThirdParty).toBe(true); // blog. is in PLATFORM_SUBDOMAINS
+        expect(isThirdPartyUrl('https://blog.realempresa.com').isThirdParty).toBe(false);
+        expect(isThirdPartyUrl('https://app.realempresa.com').isThirdParty).toBe(false);
       });
 
       test('should NOT flag www as platform subdomain', () => {
@@ -184,16 +186,12 @@ describe('patterns.js', () => {
       });
     });
 
-    describe('path-based detection', () => {
-      test('should detect Instagram profile path', () => {
-        const result = isThirdPartyUrl('https://some-site.com/@username');
-        expect(result.isThirdParty).toBe(true);
-      });
-
-      test('should detect social media post paths', () => {
-        expect(isThirdPartyUrl('https://site.com/p/some-post').isThirdParty).toBe(true);
-        expect(isThirdPartyUrl('https://site.com/reels/some-video').isThirdParty).toBe(true);
-        expect(isThirdPartyUrl('https://site.com/shorts/123').isThirdParty).toBe(true);
+    describe('path-based false positives', () => {
+      test('should NOT classify arbitrary site paths as third-party', () => {
+        expect(isThirdPartyUrl('https://some-site.com/@username').isThirdParty).toBe(false);
+        expect(isThirdPartyUrl('https://site.com/p/some-post').isThirdParty).toBe(false);
+        expect(isThirdPartyUrl('https://site.com/reels/some-video').isThirdParty).toBe(false);
+        expect(isThirdPartyUrl('https://site.com/shorts/123').isThirdParty).toBe(false);
       });
     });
 

@@ -77,7 +77,18 @@ export default function ProposalBuilderPage() {
   const navigate = useNavigate();
   const lead = location.state?.lead as Lead;
 
-  const savedData = (lead as any)?.proposalData || {};
+  interface SavedProposal {
+    priceZeus?: string;
+    priceHermesSetup?: string;
+    priceHermesMonthly?: string;
+    priceAthena?: string;
+    imgCaos?: string;
+    imgHefesto?: string;
+    imgOlimpo?: string;
+  }
+
+  const savedData: SavedProposal =
+    (lead as Lead & { proposalData?: SavedProposal })?.proposalData || {};
 
   const [priceZeus, setPriceZeus] = useState(savedData.priceZeus || '2.497,00');
   const [priceHermesSetup, setPriceHermesSetup] = useState(savedData.priceHermesSetup || '1.497,00');

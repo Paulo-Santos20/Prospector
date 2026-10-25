@@ -10,20 +10,27 @@ export const LeadCard = ({ lead }: { lead: Lead }) => {
   const [isSaved, setIsSaved] = useState(false);
   const { analysis } = lead;
 
-  const handleSave = async (e: any) => {
+  const handleSave = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    try { await saveLeadToCRM(lead); setIsSaved(true); } catch (e) { console.error(e); }
+    try {
+      await saveLeadToCRM(lead);
+      setIsSaved(true);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   // ESTADO DE CARREGAMENTO (Efeito Streaming)
   if (analysis.status === 'ANALYZING') {
     return (
       <div className="bg-surface border border-slate-700/50 rounded-2xl p-6 shadow-lg h-full flex flex-col relative animate-pulse">
-        <div className="h-6 bg-slate-700 rounded-md w-3/4 mb-2"></div>
-        <div className="h-3 bg-slate-800 rounded-md w-1/2 mb-6"></div>
-        
+        <h3 className="text-lg font-bold text-white/60 mb-1 pr-8 truncate">{lead.displayName.text}</h3>
+        <p className="text-xs text-slate-500 flex items-center mb-4 truncate">
+          <MapPin className="w-3 h-3 mr-1 shrink-0" /> {lead.formattedAddress.split(',')[0]}
+        </p>
+
         <div className="mb-4"><div className="h-5 bg-slate-800 rounded w-20"></div></div>
-        
+
         <div className="bg-slate-800/30 p-4 rounded-xl flex-grow mb-4 flex flex-col items-center justify-center gap-3 border border-slate-700/50">
            <Loader2 className="w-6 h-6 text-primary animate-spin" />
            <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest text-center">IA Avaliando Presença Digital...</span>

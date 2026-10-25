@@ -8,7 +8,9 @@ export const searchPlaces = async (query, location) => {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   
   if (!apiKey) {
-    throw new Error('Google API Key não configurada no .env');
+    const error = new Error('Google Places não configurado no servidor.');
+    error.status = 503;
+    throw error;
   }
 
   const textQuery = `${query} em ${location}`;
@@ -27,7 +29,8 @@ export const searchPlaces = async (query, location) => {
           // Pedimos apenas os campos necessários.
           // websiteUri é o ouro aqui.
           'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.internationalPhoneNumber,places.rating,places.userRatingCount,places.priceLevel'
-        }
+        },
+        timeout: 15_000
       }
     );
 
@@ -43,9 +46,13 @@ export const searchPlaces = async (query, location) => {
     console.error(`❌ Erro na API do Google (${status}):`, message);
     
     if (status === 403) {
-      throw new Error('Chave de API inválida ou faturamento não ativado no Google Cloud.');
+      const apiError = new Error('Chave de API inválida ou faturamento não ativado no Google Cloud.');
+      apiError.status = 502;
+      throw apiError;
     }
-    
-    throw new Error('Falha ao buscar locais no Google Maps.');
+
+    const apiError = new Error('Falha ao buscar locais no Google Maps.');
+    apiError.status = 502;
+    throw apiError;
   }
 };

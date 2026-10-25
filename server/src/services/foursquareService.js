@@ -1,13 +1,28 @@
 // server/src/services/foursquareService.js
 import axios from 'axios';
+import { env } from '../config/env.js';
 
 const FSQ_API_URL = 'https://places-api.foursquare.com/places/search';
 
+export const normalizeFoursquarePlace = (place) => ({
+  id: place.fsq_place_id || place.fsq_id,
+  displayName: { text: place.name || 'Sem nome' },
+  formattedAddress: place.location?.formatted_address || '',
+  websiteUri: place.website || '',
+  internationalPhoneNumber: place.tel || '',
+  // Foursquare uses 0-10 scale, normalize to 0-5 to match Google
+  rating: place.rating != null ? place.rating / 2 : undefined,
+  userRatingCount: undefined,
+  priceLevel: place.price ?? undefined,
+});
+
 export const searchFoursquare = async (query, location) => {
-  const apiKey = process.env.FOURSQUARE_API_KEY;
+  const apiKey = env.FOURSQUARE_API_KEY;
 
   if (!apiKey) {
-    throw new Error('Foursquare API Key não configurada no .env');
+    const error = new Error('Foursquare não configurado no servidor.');
+    error.status = 503;
+    throw error;
   }
 
   console.log(`🌐 Consultando Foursquare para: "${query} em ${location}"`);
@@ -23,23 +38,14 @@ export const searchFoursquare = async (query, location) => {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'X-Places-Api-Version': '2025-06-17'
-      }
+      },
+      timeout: 15_000
     });
 
     const results = response.data.results || [];
     console.log(`✅ Foursquare retornou ${results.length} locais.`);
 
-    return results.map(place => ({
-      id: place.fsq_id,
-      displayName: { text: place.name },
-      formattedAddress: place.location?.formatted_address,
-      websiteUri: place.website,
-      internationalPhoneNumber: place.tel,
-      // Foursquare uses 0-10 scale, normalize to 0-5 to match Google
-      rating: place.rating != null ? place.rating / 2 : undefined,
-      userRatingCount: undefined,
-      priceLevel: place.price
-    }));
+    return results.filter((place) => place.fsq_place_id || place.fsq_id).map(normalizeFoursquarePlace);
 
   } catch (error) {
     const status = error.response?.status;
@@ -48,9 +54,21 @@ export const searchFoursquare = async (query, location) => {
     console.error(`❌ Erro na API do Foursquare (${status}):`, message);
 
     if (status === 401 || status === 403) {
-      throw new Error('Chave de API do Foursquare inválida ou expirada.');
+      const apiError = new Error('Chave de API do Foursquare inválida ou expirada.');
+      apiError.status = 502;
+      throw apiError;
     }
 
-    return [];
+    if (status === 429) {
+      const apiError = new Error(
+        'Foursquare sem créditos disponíveis no momento. Use o Overpass ou aguarde a renovação.'
+      );
+      apiError.status = 429;
+      throw apiError;
+    }
+
+    const apiError = new Error('Falha ao buscar locais no Foursquare. Tente novamente.');
+    apiError.status = 502;
+    throw apiError;
   }
 };

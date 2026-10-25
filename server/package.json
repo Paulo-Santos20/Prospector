@@ -7,7 +7,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch"
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "migrate:owner": "node scripts/migrate-owner.js"
   },
   "keywords": [],
   "author": "",
@@ -20,13 +21,13 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.1",
     "firebase-admin": "^13.6.1",
-    "google-it": "^1.6.4",
     "groq-sdk": "^0.37.0",
     "helmet": "^8.1.0",
     "morgan": "^1.10.1",
-    "openai": "^6.21.0",
-    "p-limit": "^7.3.0"
+    "p-limit": "^7.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "jest": "^29.7.0",

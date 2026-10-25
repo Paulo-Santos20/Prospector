@@ -13,6 +13,11 @@ pnpm-debug.log*
 .env.production.local
 *.pem
 
+# Firebase
+server/src/config/firebase-service-account.json
+.firebase/
+firestore-debug.log
+
 # Build do Front-end
 client/dist/
 client/build/
@@ -30,5 +35,4 @@ logs/
 *.swo
 
 # Coverage de testes
-coverage/server/src/config/firebase-service-account.json
-server/src/config/firebase-service-account.json
+coverage/
