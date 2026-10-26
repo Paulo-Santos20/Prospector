@@ -1,5 +1,5 @@
 ﻿import { Copy, Check, X, FileText, Send, Sparkles } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { type Lead } from '../../search/services/searchService';
 
 interface ProposalModalProps {
@@ -10,11 +10,22 @@ interface ProposalModalProps {
 
 export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => {
   const [copied, setCopied] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeButtonRef.current?.focus();
+
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    if (isOpen) window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    window.addEventListener('keydown', handleEsc);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleEsc);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -57,64 +68,84 @@ export const ProposalModal = ({ lead, isOpen, onClose }: ProposalModalProps) => 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-all">
-      <div className="bg-surface border border-slate-700 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/80 p-3 backdrop-blur-sm sm:items-center sm:p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="proposal-modal-title"
+        className="flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-surface shadow-2xl sm:rounded-3xl"
+      >
         
-        <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/20 rounded-xl">
-              <FileText className="w-5 h-5 text-primary" />
+        <div className="flex items-center justify-between gap-3 border-b border-slate-700 bg-slate-800/50 p-4 sm:p-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="shrink-0 rounded-xl bg-primary/20 p-2">
+              <FileText className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <h2 className="text-xl font-black text-white leading-none">Proposta Inteligente</h2>
+            <div className="min-w-0">
+              <h2 id="proposal-modal-title" className="truncate text-lg font-black leading-none text-white sm:text-xl">Proposta Inteligente</h2>
               {ai && (
-                <div className="flex items-center gap-1 mt-1">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span className="text-[10px] uppercase font-bold text-amber-400 tracking-widest">Enriquecido com IA Real</span>
+                <div className="mt-1 flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-amber-400" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Enriquecido com IA Real</span>
                 </div>
               )}
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-all">
-            <X className="w-6 h-6" />
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar proposta"
+            className="shrink-0 rounded-full p-2.5 text-slate-400 transition-all hover:bg-slate-700 hover:text-white"
+          >
+            <X className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 
-        <div className="p-8">
-          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-4">Script de Abordagem Personalizado</p>
+        <div className="overflow-y-auto p-4 sm:p-8">
+          <p className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Script de Abordagem Personalizado</p>
           
-          <div className="bg-background border border-slate-800 rounded-2xl p-6 relative group shadow-inner">
-            <pre className="text-slate-300 whitespace-pre-wrap font-sans text-sm leading-relaxed max-h-[400px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-slate-700">
+          <div className="relative rounded-2xl border border-slate-800 bg-background p-4 shadow-inner sm:p-6">
+            <pre className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap pr-14 font-sans text-sm leading-relaxed text-slate-300 scrollbar-thin sm:max-h-[400px]">
               {generateCopy()}
             </pre>
             <button 
+              type="button"
               onClick={copyToClipboard}
-              className="absolute top-4 right-4 p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-600 transition-all active:scale-90 shadow-lg group-hover:border-primary/50"
+              className="absolute right-3 top-3 rounded-xl border border-slate-600 bg-slate-800 p-2.5 shadow-lg transition-all hover:bg-slate-700 active:scale-90 sm:right-4 sm:top-4"
               title="Copiar texto"
+              aria-label="Copiar script"
             >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
+              {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4 text-slate-400" />}
             </button>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button onClick={copyToClipboard} className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl transition-all border border-slate-600 active:scale-95">
-              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:mt-8 sm:grid-cols-2 sm:gap-4">
+            <button
+              type="button"
+              onClick={copyToClipboard}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-slate-600 bg-slate-800 py-3.5 font-bold text-white transition-all hover:bg-slate-700 active:scale-95 sm:py-4"
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               {copied ? 'Copiado para o Clipboard' : 'Copiar Script'}
             </button>
             <a 
               href={`https://wa.me/${lead.internationalPhoneNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(generateCopy())}`}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 font-black text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-500 active:scale-95 sm:py-4"
             >
-              <Send className="w-4 h-4" /> Enviar no WhatsApp
+              <Send className="h-4 w-4" /> Enviar no WhatsApp
             </a>
           </div>
         </div>
 
-        <div className="p-5 bg-slate-900/80 text-center border-t border-slate-800">
-          <p className="text-[10px] text-slate-500 font-medium leading-relaxed italic">
-            Dica: Abordagens personalizadas com detalhes do negócio <br /> têm 3x mais chance de receber uma resposta positiva.
+        <div className="border-t border-slate-800 bg-slate-900/80 p-4 text-center sm:p-5">
+          <p className="text-[10px] font-medium italic leading-relaxed text-slate-500">
+            Dica: Abordagens personalizadas com detalhes do negócio <br className="hidden sm:block" /> têm 3x mais chance de receber uma resposta positiva.
           </p>
         </div>
       </div>

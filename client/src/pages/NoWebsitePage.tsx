@@ -1,9 +1,8 @@
-﻿import { useState, useMemo, type MouseEvent } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+﻿import { useState, useMemo, type MouseEvent, type KeyboardEvent } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Loader2, AlertCircle, 
-  Globe, MapPin, Star, 
-  TrendingUp, Search, Layout
+  MapPin, Star, TrendingUp
 } from 'lucide-react';
 import {
   providerAttribution,
@@ -12,6 +11,7 @@ import {
 } from '../features/search/services/searchService';
 import { useLeadSearch } from '../features/search/hooks/useLeadSearch';
 import { saveLeadToCRM } from '../features/crm/services/crmService';
+import { AppHeader } from '../app/AppHeader';
 
 export default function NoWebsitePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -54,68 +54,62 @@ export default function NoWebsitePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 pb-20">
-      <header className="border-b border-slate-800 bg-surface/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg">
-              <Globe className="w-4 h-4" />
-            </div>
-            <span className="font-bold text-xl tracking-tight">Sem Site</span>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all border border-slate-700 hover:border-primary">
-              <Search className="w-4 h-4" /> Buscar Leads
-            </Link>
-            <Link to="/crm" className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all border border-slate-700 hover:border-primary">
-              <Layout className="w-4 h-4" /> CRM
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background pb-20 text-slate-100">
+      <AppHeader />
 
-      <main className="max-w-7xl mx-auto px-4 mt-8">
-        <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-2xl mb-10 relative overflow-hidden">
-          <h1 className="text-2xl font-black mb-2 flex items-center gap-2 italic uppercase">
-            <TrendingUp className="w-5 h-5 text-red-400" /> Empresas Sem Website
+      <main className="mx-auto mt-5 max-w-7xl px-3 sm:mt-8 sm:px-4">
+        <div className="relative mb-6 overflow-hidden rounded-3xl border border-slate-700 bg-surface p-4 shadow-2xl sm:mb-10 sm:rounded-[2.5rem] sm:p-6 lg:p-8">
+          <h1 className="mb-2 flex items-center gap-2 text-xl font-black italic uppercase sm:text-2xl">
+            <TrendingUp className="h-4 w-4 shrink-0 text-red-400 sm:h-5 sm:w-5" /> Empresas Sem Website
           </h1>
-          <p className="text-sm text-slate-400 mb-6">Encontre negócios prontos para criar presença digital</p>
+          <p className="mb-4 text-sm text-slate-400 sm:mb-6">Encontre negócios prontos para criar presença digital</p>
           
-          <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 relative z-10">
+          <form onSubmit={handleSearch} className="relative z-10 flex flex-col gap-3 md:flex-row">
             <input 
-              type="text" placeholder="Nicho (ex: Restaurantes)" value={nicheInput}
+              type="text"
+              aria-label="Nicho"
+              placeholder="Nicho (ex: Restaurantes)"
+              value={nicheInput}
               onChange={(e) => setNicheInput(e.target.value)}
-              className="flex-1 bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-red-500 transition"
+              className="w-full min-w-0 flex-1 rounded-2xl border border-slate-600 bg-background px-4 py-3.5 text-base outline-none transition focus:ring-2 focus:ring-red-500 sm:px-6 sm:py-4"
             />
             <input 
-              type="text" placeholder="Localização (ex: São Paulo)" value={locationInput}
+              type="text"
+              aria-label="Localização"
+              placeholder="Localização (ex: São Paulo)"
+              value={locationInput}
               onChange={(e) => setLocationInput(e.target.value)}
-              className="flex-1 bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-red-500 transition"
+              className="w-full min-w-0 flex-1 rounded-2xl border border-slate-600 bg-background px-4 py-3.5 text-base outline-none transition focus:ring-2 focus:ring-red-500 sm:px-6 sm:py-4"
             />
-            <button disabled={isFetching} type="submit" className="bg-red-600 hover:bg-red-700 text-white font-black py-4 px-10 rounded-2xl transition disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-tighter italic">
+            <button
+              disabled={isFetching}
+              type="submit"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 px-6 py-3.5 font-black italic uppercase tracking-tighter text-white transition hover:bg-red-700 disabled:opacity-50 sm:py-4 md:w-auto md:px-10"
+            >
               {isFetching ? <Loader2 className="animate-spin" /> : 'Encontrar Sem Site'}
             </button>
           </form>
-          <p className="mt-3 text-[10px] text-slate-500 font-medium">
+          <p className="mt-3 text-[10px] font-medium text-slate-500">
             {providerAttribution(DEFAULT_PROVIDER)}
           </p>
         </div>
 
         {isError && (
-          <div className="mb-8 flex items-start gap-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-2xl p-5 text-sm">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <div className="flex-1">
-              <p>{error instanceof Error ? error.message : 'Não foi possível buscar leads.'}</p>
-              {totalLeads > 0 && (
-                <p className="mt-1 text-xs text-red-400">
-                  {analyzedLeads} de {totalLeads} leads analisados. Resultados parciais mantidos.
-                </p>
-              )}
+          <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300 sm:mb-8 sm:flex-row sm:items-start sm:p-5">
+            <div className="flex flex-1 items-start gap-3">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <div className="flex-1">
+                <p>{error instanceof Error ? error.message : 'Não foi possível buscar leads.'}</p>
+                {totalLeads > 0 && (
+                  <p className="mt-1 text-xs text-red-400">
+                    {analyzedLeads} de {totalLeads} leads analisados. Resultados parciais mantidos.
+                  </p>
+                )}
+              </div>
             </div>
             <button
               onClick={() => refetch()}
-              className="shrink-0 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase"
+              className="shrink-0 rounded-xl bg-red-600 px-4 py-2.5 text-[10px] font-black uppercase text-white hover:bg-red-700 sm:py-2"
             >
               {totalLeads > 0 ? 'Continuar' : 'Tentar novamente'}
             </button>
@@ -123,7 +117,7 @@ export default function NoWebsitePage() {
         )}
 
         {isFetching && totalLeads > 0 && (
-          <div className="mb-8 bg-surface border border-slate-700 rounded-2xl p-5">
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-surface p-4 sm:mb-8 sm:p-5">
             <div className="flex items-center justify-between mb-2 text-[10px] font-black uppercase tracking-widest">
               <span className="text-slate-400 flex items-center gap-2">
                 <Loader2 className="w-3 h-3 animate-spin text-red-400" /> Analisando com IA
@@ -140,43 +134,51 @@ export default function NoWebsitePage() {
         )}
 
         {data?.leads && (
-          <div className="flex flex-wrap items-center gap-4 mb-8">
-            <span className="text-xs font-bold text-slate-500 uppercase">Ordenar por:</span>
-            <button 
-              onClick={() => setSortBy('rating')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition ${sortBy === 'rating' ? 'bg-red-600 text-white' : 'bg-surface text-slate-400 border border-slate-700'}`}
-            >
-              <Star className="w-3 h-3 inline mr-1" /> Nota
-            </button>
-            <button 
-              onClick={() => setSortBy('reviews')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition ${sortBy === 'reviews' ? 'bg-red-600 text-white' : 'bg-surface text-slate-400 border border-slate-700'}`}
-            >
-              Reviews
-            </button>
-            <button 
-              onClick={() => setSortBy('price')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition ${sortBy === 'price' ? 'bg-red-600 text-white' : 'bg-surface text-slate-400 border border-slate-700'}`}
-            >
-              Preço
-            </button>
+          <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:gap-4">
+            <span className="text-xs font-bold uppercase text-slate-500">Ordenar por:</span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSortBy('rating')}
+                aria-pressed={sortBy === 'rating'}
+                className={`rounded-xl px-3 py-2 text-xs font-bold transition sm:px-4 ${sortBy === 'rating' ? 'bg-red-600 text-white' : 'border border-slate-700 bg-surface text-slate-400'}`}
+              >
+                <Star className="mr-1 inline h-3 w-3" /> Nota
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortBy('reviews')}
+                aria-pressed={sortBy === 'reviews'}
+                className={`rounded-xl px-3 py-2 text-xs font-bold transition sm:px-4 ${sortBy === 'reviews' ? 'bg-red-600 text-white' : 'border border-slate-700 bg-surface text-slate-400'}`}
+              >
+                Reviews
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortBy('price')}
+                aria-pressed={sortBy === 'price'}
+                className={`rounded-xl px-3 py-2 text-xs font-bold transition sm:px-4 ${sortBy === 'price' ? 'bg-red-600 text-white' : 'border border-slate-700 bg-surface text-slate-400'}`}
+              >
+                Preço
+              </button>
+            </div>
             
-            <span className="ml-auto text-sm font-bold text-slate-400">
+            <span className="text-sm font-bold text-slate-400 sm:ml-auto">
               {noWebsiteLeads.length} oportunidades encontradas
             </span>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
           {noWebsiteLeads.map(lead => (
             <NoWebsiteCard key={lead.id} lead={lead} />
           ))}
         </div>
 
         {!isFetching && !isError && nicheParam && noWebsiteLeads.length === 0 && (
-          <div className="text-center py-20">
-            <AlertCircle className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-400">Nenhuma empresa sem site encontrada nesta busca</p>
+          <div className="py-16 text-center sm:py-20">
+            <AlertCircle className="mx-auto mb-4 h-10 w-10 text-slate-600 sm:h-12 sm:w-12" />
+            <p className="text-sm text-slate-400">Nenhuma empresa sem site encontrada nesta busca</p>
           </div>
         )}
       </main>
@@ -191,8 +193,8 @@ function NoWebsiteCard({ lead }: { lead: Lead }) {
 
   if (analysis.status === 'ANALYZING') {
     return (
-      <div className="bg-surface border border-slate-700/50 rounded-2xl p-6 shadow-lg h-full flex flex-col relative animate-pulse">
-        <h3 className="text-lg font-bold text-white/60 truncate">{lead.displayName.text}</h3>
+      <div className="relative flex h-full animate-pulse flex-col rounded-2xl border border-slate-700/50 bg-surface p-5 shadow-lg sm:p-6">
+        <h3 className="truncate text-lg font-bold text-white/60">{lead.displayName.text}</h3>
         <p className="text-xs text-slate-500 flex items-center truncate mb-6">
           <MapPin className="w-3 h-3 mr-1 shrink-0" /> {lead.formattedAddress.split(',')[0]}
         </p>
@@ -206,6 +208,8 @@ function NoWebsiteCard({ lead }: { lead: Lead }) {
     );
   }
 
+  const openLead = () => navigate(`/lead/${lead.id}`, { state: { lead } });
+
   const handleSave = async (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     try {
@@ -216,6 +220,14 @@ function NoWebsiteCard({ lead }: { lead: Lead }) {
     }
   };
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openLead();
+    }
+  };
+
   const getPriceLabel = (level: number) => {
     const labels = ['', '$', '$$', '$$$', '$$$$'];
     return labels[level] || '$';
@@ -223,18 +235,27 @@ function NoWebsiteCard({ lead }: { lead: Lead }) {
 
   return (
     <div 
-      className="bg-surface border border-slate-700 rounded-2xl p-6 hover:border-red-500 transition-all shadow-lg h-full flex flex-col relative group cursor-pointer"
-      onClick={() => navigate('/lead/' + lead.id, { state: { lead } })}
+      role="link"
+      tabIndex={0}
+      aria-label={`Abrir detalhes de ${lead.displayName.text}`}
+      className="group relative flex h-full cursor-pointer flex-col rounded-2xl border border-slate-700 bg-surface p-5 shadow-lg transition-all hover:border-red-500 focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-400 sm:p-6"
+      onClick={openLead}
+      onKeyDown={handleKeyDown}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-bold text-white truncate">{lead.displayName.text}</h3>
-          <p className="text-xs text-slate-500 flex items-center truncate">
-            <MapPin className="w-3 h-3 mr-1 shrink-0" /> {lead.formattedAddress.split(',')[0]}
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-lg font-bold text-white">{lead.displayName.text}</h3>
+          <p className="flex items-center truncate text-xs text-slate-500">
+            <MapPin className="mr-1 h-3 w-3 shrink-0" /> {lead.formattedAddress.split(',')[0]}
           </p>
         </div>
-        <button onClick={handleSave} className={`p-2 rounded-lg transition ${isSaved ? 'text-amber-400 bg-amber-500/10' : 'text-slate-500 hover:text-amber-400'}`}>
-          <Star className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+        <button
+          type="button"
+          onClick={handleSave}
+          aria-label={isSaved ? 'Lead salvo no CRM' : 'Salvar lead no CRM'}
+          className={`rounded-lg p-2.5 transition ${isSaved ? 'bg-amber-500/10 text-amber-400' : 'text-slate-500 hover:text-amber-400'}`}
+        >
+          <Star className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
         </button>
       </div>
 

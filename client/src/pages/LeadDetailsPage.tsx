@@ -7,6 +7,7 @@ import {
 import { type Lead, enrichLead, fetchLeadById } from '../features/search/services/searchService';
 import { ProposalModal } from '../features/leads/components/ProposalModal';
 import { saveLeadToCRM, updateLeadNotes } from '../features/crm/services/crmService';
+import { UserMenu } from '../app/UserMenu';
 import { useState, useEffect } from 'react';
 
 export default function LeadDetailsPage() {
@@ -35,6 +36,7 @@ export default function LeadDetailsPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [notes, setNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [notesFeedback, setNotesFeedback] = useState('');
 
   // Dados de contato já vêm da análise do site; enriquecimento só gera o diagnóstico.
   const [isEnriching, setIsEnriching] = useState(false);
@@ -54,18 +56,18 @@ export default function LeadDetailsPage() {
   };
 
   const MetricCard = ({ icon, value, label, subtext }: { icon: string; value: string; label: string; subtext?: string }) => (
-    <div className="bg-slate-800/50 rounded-xl p-4 text-center border border-slate-700/50">
-      <div className="text-2xl mb-1">{icon}</div>
-      <div className="text-xl font-bold text-white">{value}</div>
-      <div className="text-xs text-slate-400 uppercase tracking-wider">{label}</div>
-      {subtext && <div className="text-[10px] text-slate-500 mt-1">{subtext}</div>}
+    <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-2.5 text-center sm:p-4">
+      <div className="mb-1 text-xl sm:text-2xl">{icon}</div>
+      <div className="text-base font-bold text-white sm:text-xl">{value}</div>
+      <div className="text-[9px] uppercase tracking-wide text-slate-400 sm:text-xs sm:tracking-wider">{label}</div>
+      {subtext && <div className="mt-1 text-[9px] text-slate-500 sm:text-[10px]">{subtext}</div>}
     </div>
   );
 
   const leadId = lead?.id;
 
   useEffect(() => {
-    if (!leadId) return;
+    if (!leadId || !lead || lead.analysis?.aiData) return;
 
     let isMounted = true;
 
@@ -88,7 +90,7 @@ export default function LeadDetailsPage() {
     return () => {
       isMounted = false;
     };
-  }, [leadId]);
+  }, [leadId, lead]);
 
   if (loadingLead) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center text-slate-400">
@@ -124,11 +126,13 @@ export default function LeadDetailsPage() {
 
   const handleSaveNotes = async () => {
     setIsSavingNotes(true);
+    setNotesFeedback('');
     try {
       await updateLeadNotes(lead.id, notes);
-      alert("Histórico atualizado no CRM!");
+      setNotesFeedback('Histórico atualizado no CRM.');
     } catch (error) {
       console.error("Erro ao salvar notas", error);
+      setNotesFeedback('Não foi possível salvar o histórico.');
     } finally {
       setIsSavingNotes(false);
     }
@@ -148,46 +152,93 @@ export default function LeadDetailsPage() {
     }
   };
 
+  const renderActions = (compact = false) => (
+    <div className={compact ? 'grid grid-cols-2 gap-2 print:hidden lg:hidden' : 'hidden space-y-4 print:hidden lg:block'}>
+      <button
+        type="button"
+        onClick={handlePrintPDF}
+        className={`flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-600/10 font-black text-emerald-400 shadow-lg transition-all hover:bg-emerald-600/20 active:scale-95 ${compact ? 'col-span-1 py-3 text-xs' : 'py-4'}`}
+      >
+        <FileDown className="h-4 w-4 sm:h-5 sm:w-5" /> Baixar PDF
+      </button>
+
+      <button
+        type="button"
+        onClick={handleSaveToCRM}
+        disabled={isSaved}
+        className={`flex w-full items-center justify-center gap-2 rounded-2xl border font-black shadow-lg transition-all ${isSaved ? 'border-amber-500/20 bg-amber-500/10 text-amber-400' : 'border-slate-700 bg-surface hover:text-amber-400 active:scale-95'} ${compact ? 'col-span-1 py-3 text-xs' : 'py-4'}`}
+      >
+        <Star className={`h-4 w-4 sm:h-5 sm:w-5 ${isSaved ? 'fill-current' : ''}`} />
+        {isSaved ? 'Lead no CRM' : 'Favoritar (CRM)'}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => navigate(`/proposal/${lead.id}`, { state: { lead } })}
+        className={`flex w-full flex-col items-center justify-center gap-1 rounded-2xl font-black italic uppercase tracking-tighter text-white shadow-2xl transition-all hover:scale-[1.02] active:scale-95 ${compact ? 'col-span-2 py-4 text-sm' : 'py-8 text-xl'}`}
+        style={{ backgroundColor: pColor }}
+      >
+        Elaborar Proposta (PDF)
+        <span className={`font-bold uppercase not-italic tracking-widest opacity-80 ${compact ? 'text-[9px]' : 'mt-1 text-[10px]'}`}>Metodologia Olimpo</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setIsModalOpen(true)}
+        className={`flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-800 text-sm font-black text-white transition-all hover:bg-slate-700 ${compact ? 'col-span-2 py-3 text-xs' : 'rounded-[1.5rem] py-4'}`}
+      >
+        <MessageSquare className="h-4 w-4" /> Gerar Script Rápido (WhatsApp)
+      </button>
+    </div>
+  );
+
   return (
     // Adicionado 'print:bg-white print:text-black' para garantir que o PDF saia legível e limpo se necessário
     <div className="min-h-screen bg-background text-slate-200 pb-20 font-sans selection:bg-primary selection:text-white print:bg-white">
 
       {/* HEADER - Escondido na hora da impressão (print:hidden) */}
-      <header className="border-b border-slate-800 bg-surface/80 backdrop-blur-md sticky top-0 z-50 px-4 h-20 flex items-center justify-between print:hidden">
-        <button onClick={() => navigate(-1)} className="flex items-center text-slate-400 hover:text-white transition-all font-black uppercase text-[10px] tracking-[0.3em] group">
-          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> Voltar
+      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-slate-800 bg-surface/80 px-3 backdrop-blur-md print:hidden sm:h-20 sm:px-4">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="group flex items-center rounded-lg text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 transition-all hover:text-white sm:tracking-[0.3em]"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" /> Voltar
         </button>
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400" />
-          <span className="text-[10px] font-black tracking-[0.4em] text-slate-500 uppercase italic">Intelligence Report v2.0</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="hidden items-center gap-2 sm:flex">
+            <Sparkles className="h-4 w-4 text-amber-400" />
+            <span className="truncate text-[10px] font-black uppercase italic tracking-[0.3em] text-slate-500">Intelligence Report v2.0</span>
+          </div>
+          <UserMenu />
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 mt-12 print:mt-0">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 print:block">
+      <main className="mx-auto mt-6 max-w-6xl px-3 print:mt-0 sm:mt-10 sm:px-4">
+        <div className="grid grid-cols-1 gap-6 print:block lg:grid-cols-3 lg:gap-10">
 
-          <div className="lg:col-span-2 space-y-10">
+          <div className="space-y-6 lg:col-span-2 lg:space-y-10">
             {/* HERO CARD */}
-            <div className="bg-surface border border-slate-700/50 rounded-[3rem] p-10 shadow-3xl relative overflow-hidden group print:border-slate-300 print:shadow-none print:bg-slate-50">
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 blur-[120px] pointer-events-none print:hidden" style={{ backgroundColor: pColor }}></div>
+            <div className="group relative overflow-hidden rounded-3xl border border-slate-700/50 bg-surface p-5 shadow-3xl print:border-slate-300 print:bg-slate-50 print:shadow-none sm:rounded-[3rem] sm:p-8 lg:p-10">
+              <div className="pointer-events-none absolute right-0 top-0 h-[500px] w-[500px] opacity-10 blur-[120px] print:hidden" style={{ backgroundColor: pColor }}></div>
 
-              <h1 className="text-6xl font-black text-white mb-4 tracking-tighter leading-none italic uppercase relative z-10 print:text-slate-900">
+              <h1 className="relative z-10 mb-3 break-words text-4xl font-black italic uppercase leading-none tracking-tighter text-white print:text-slate-900 sm:mb-4 sm:text-5xl lg:text-6xl">
                 {lead.displayName.text}
               </h1>
 
-              <div className="flex items-center text-slate-400 mb-10 text-sm font-medium opacity-70 print:text-slate-600">
-                <MapPin className="w-4 h-4 mr-2" style={{ color: pColor }} /> {lead.formattedAddress}
+              <div className="mb-6 flex items-start gap-2 text-xs font-medium text-slate-400 opacity-70 print:text-slate-600 sm:mb-10 sm:text-sm">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" style={{ color: pColor }} /> <span className="break-words">{lead.formattedAddress}</span>
               </div>
 
               {isEnriching ? (
                 <div className="flex items-center gap-3">
-                  <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                  <span className="text-[12px] font-black text-amber-400 uppercase tracking-[0.3em]">Enriquecendo dados...</span>
+                  <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400 sm:text-[12px] sm:tracking-[0.3em]">Enriquecendo dados...</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-red-500/20 rounded-lg"><AlertCircle className="w-5 h-5 text-red-500" /></div>
-                  <span className="text-[12px] font-black text-red-500 uppercase tracking-[0.3em]">Diagnóstico de Conversão</span>
+                <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
+                  <div className="rounded-lg bg-red-500/20 p-2"><AlertCircle className="h-5 w-5 text-red-500" /></div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 sm:text-[12px] sm:tracking-[0.3em]">Diagnóstico de Conversão</span>
                   {analysisData?.urgency && (
                     <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase ${
                       analysisData.urgency === 'high' ? 'bg-red-500/30 text-red-400' :
@@ -209,7 +260,7 @@ export default function LeadDetailsPage() {
                 </div>
               )}
               {/* KEY METRICS */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-4">
                 <MetricCard
                   icon="★"
                   value={analysisData?.keyMetrics?.rating?.toFixed(1) || rating?.toFixed(1) || 'N/A'}
@@ -229,80 +280,89 @@ export default function LeadDetailsPage() {
               </div>
 
               {/* MAIN PAIN POINT */}
-              <p className="text-lg text-slate-100 font-semibold leading-relaxed">
+              <p className="text-base font-semibold leading-relaxed text-slate-100 sm:text-lg">
                 {analysisData?.mainPainPoint || 'Análise em progresso...'}
               </p>
 
               {/* SPECIFIC ISSUES */}
               {analysisData?.specificIssues && analysisData.specificIssues.length > 0 && (
-                <div className="space-y-2 mt-4">
+                <div className="mt-4 space-y-2">
                   {analysisData.specificIssues.map((issue, idx) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <span className={`text-[10px] px-2 py-1 rounded uppercase font-bold ${
+                    <div key={idx} className="flex items-start gap-2 sm:gap-3">
+                      <span className={`shrink-0 rounded px-2 py-1 text-[10px] font-bold uppercase ${
                         issue.impact === 'high' ? 'bg-red-500/30 text-red-400' :
                         issue.impact === 'medium' ? 'bg-yellow-500/30 text-yellow-400' :
                         'bg-slate-600/30 text-slate-400'
                       }`}>
                         {issue.type.replace('_', ' ')}
                       </span>
-                      <span className="text-sm text-slate-300">{issue.description}</span>
+                      <span className="break-words text-sm text-slate-300">{issue.description}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
+            {renderActions(true)}
+
             {/* HISTÓRICO DE CONTATO (Oculto no PDF para manter sigilo) */}
-            <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl print:hidden">
-              <div className="flex items-center gap-3 mb-6">
-                <MessageSquare className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Histórico de Contato</h2>
+            <section className="rounded-3xl border border-slate-800 bg-surface/40 p-5 shadow-xl print:hidden sm:rounded-[3rem] sm:p-8 lg:p-10">
+              <div className="mb-5 flex items-center gap-3 sm:mb-6">
+                <MessageSquare className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-white sm:text-2xl">Histórico de Contato</h2>
               </div>
               <div className="relative">
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Registre as interações (ex: Liguei e falei com o proprietário, retorno agendado para terça)..."
-                  className="w-full bg-background border border-slate-700 rounded-2xl p-6 text-slate-300 outline-none focus:ring-2 focus:ring-primary min-h-[150px] transition-all resize-none shadow-inner"
+                  aria-label="Histórico de contato"
+                  className="min-h-[150px] w-full resize-none rounded-2xl border border-slate-700 bg-background p-4 pb-16 text-slate-300 shadow-inner outline-none transition-all focus:ring-2 focus:ring-primary sm:p-6 sm:pb-16"
                 />
                 <button
+                  type="button"
                   onClick={handleSaveNotes}
                   disabled={isSavingNotes}
-                  className="absolute bottom-4 right-4 bg-primary hover:bg-blue-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 shadow-lg"
+                  className="absolute bottom-3 right-3 flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-lg transition-all hover:bg-blue-600 active:scale-95 disabled:opacity-50 sm:bottom-4 sm:right-4 sm:px-6 sm:text-sm"
                 >
-                  {isSavingNotes ? 'Salvando...' : <><Save className="w-4 h-4" /> Salvar Nota</>}
+                  {isSavingNotes ? 'Salvando...' : <><Save className="h-4 w-4" /> Salvar Nota</>}
                 </button>
               </div>
+              {notesFeedback && (
+                <p aria-live="polite" className="mt-3 text-xs text-slate-400">
+                  {notesFeedback}
+                </p>
+              )}
             </section>
 
             {/* BRANDING IA */}
-            <section className="bg-surface/40 border border-slate-800 rounded-[3rem] p-10 shadow-xl print:border-slate-300 print:shadow-none print:mt-10">
-              <div className="flex items-center gap-4 mb-12 border-b border-slate-800 pb-8 print:border-slate-300">
-                <div className="p-4 bg-primary/10 rounded-2xl" style={{ backgroundColor: `${pColor}15` }}>
-                  <Palette className="w-8 h-8" style={{ color: pColor }} />
+            <section className="rounded-3xl border border-slate-800 bg-surface/40 p-5 shadow-xl print:mt-10 print:border-slate-300 print:shadow-none sm:rounded-[3rem] sm:p-8 lg:p-10">
+              <div className="mb-8 flex items-center gap-3 border-b border-slate-800 pb-6 print:border-slate-300 sm:mb-12 sm:gap-4 sm:pb-8">
+                <div className="shrink-0 rounded-2xl bg-primary/10 p-3 sm:p-4" style={{ backgroundColor: `${pColor}15` }}>
+                  <Palette className="h-6 w-6 sm:h-8 sm:w-8" style={{ color: pColor }} />
                 </div>
-                <div>
-                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none print:text-slate-900">Manual Visual Sugerido</h2>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Design Advisory Report</p>
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-black italic uppercase leading-none tracking-tighter text-white print:text-slate-900 sm:text-3xl">Manual Visual Sugerido</h2>
+                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 sm:text-[10px] sm:tracking-[0.3em]">Design Advisory Report</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div className="space-y-10">
-                  <div className="flex items-end gap-6">
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
+                <div className="space-y-8 sm:space-y-10">
+                  <div className="flex items-end gap-4 sm:gap-6">
                     <div className="space-y-3">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Base</p>
-                      <div className="w-20 h-20 rounded-[2rem] shadow-2xl border-4 border-white/10 print:border-slate-300 print:shadow-none" style={{ backgroundColor: pColor }}></div>
-                      <p className="text-xs font-mono text-white text-center uppercase print:text-slate-700">{pColor}</p>
+                      <p className="text-center text-[10px] font-black uppercase tracking-widest text-slate-500">Base</p>
+                      <div className="h-16 w-16 rounded-[1.5rem] border-4 border-white/10 shadow-2xl print:border-slate-300 print:shadow-none sm:h-20 sm:w-20 sm:rounded-[2rem]" style={{ backgroundColor: pColor }}></div>
+                      <p className="text-center font-mono text-xs uppercase text-white print:text-slate-700">{pColor}</p>
                     </div>
                     <div className="space-y-3">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Destaque</p>
-                      <div className="w-14 h-14 rounded-[1.5rem] shadow-xl border-2 border-white/10 print:border-slate-300 print:shadow-none" style={{ backgroundColor: sColor }}></div>
-                      <p className="text-[10px] font-mono text-slate-400 text-center uppercase">{sColor}</p>
+                      <p className="text-center text-[10px] font-black uppercase tracking-widest text-slate-500">Destaque</p>
+                      <div className="h-12 w-12 rounded-[1.25rem] border-2 border-white/10 shadow-xl print:border-slate-300 print:shadow-none sm:h-14 sm:w-14 sm:rounded-[1.5rem]" style={{ backgroundColor: sColor }}></div>
+                      <p className="text-center font-mono text-[10px] uppercase text-slate-400">{sColor}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                     <div className="p-5 bg-background/50 rounded-2xl border border-slate-700/50 print:border-slate-300 print:bg-slate-50">
                       <div className="flex items-center gap-2 mb-2 text-slate-500"><Type className="w-3 h-3" /> <span className="text-[9px] font-black uppercase">Títulos</span></div>
                       <p className="text-sm font-black text-white truncate print:text-slate-900">{design?.typography?.heading || 'Montserrat'}</p>
@@ -332,53 +392,26 @@ export default function LeadDetailsPage() {
           {/* SIDEBAR DE AÇÕES E CONTATOS */}
           <div className="space-y-6 print:mt-10">
 
-            {/* GRUPO DE BOTÕES - Ocultos na Impressão */}
-            <div className="space-y-4 print:hidden">
-              <button
-                onClick={handlePrintPDF}
-                className="w-full font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 border shadow-lg bg-emerald-600/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-600/20 active:scale-95"
-              >
-                <FileDown className="w-5 h-5" /> Baixar Relatório (PDF)
-              </button>
+            {renderActions(false)}
 
-              <button
-                onClick={handleSaveToCRM}
-                disabled={isSaved}
-                className={`w-full font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 border shadow-lg ${isSaved ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-surface hover:text-amber-400 border-slate-700 active:scale-95'
-                  }`}
-              >
-                <Star className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
-                {isSaved ? 'Lead no CRM' : 'Favoritar (CRM)'}
-              </button>
+            <div className="relative overflow-hidden rounded-3xl border border-slate-700 bg-surface p-5 shadow-xl print:break-inside-avoid print:border-slate-300 print:shadow-none sm:rounded-[2.5rem] sm:p-8">
+              <h3 className="mb-6 border-b border-slate-800 pb-3 text-[10px] font-black uppercase tracking-widest text-slate-500 print:border-slate-300 sm:mb-8">Business Intelligence</h3>
 
-              <button onClick={() => navigate(`/proposal/${lead.id}`, { state: { lead } })} className="w-full text-white font-black py-8 rounded-[2.5rem] shadow-2xl transition-all flex flex-col items-center justify-center gap-1 hover:scale-[1.02] active:scale-95 uppercase italic tracking-tighter text-xl" style={{ backgroundColor: pColor }}>
-                Elaborar Proposta (PDF)
-                <span className="text-[10px] opacity-80 not-italic tracking-widest uppercase font-bold mt-1">Metodologia Olimpo</span>
-              </button>
-
-              <button onClick={() => setIsModalOpen(true)} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-black py-4 rounded-[1.5rem] transition-all flex items-center justify-center gap-2 text-sm">
-                <MessageSquare className="w-4 h-4" /> Gerar Script Rápido (WhatsApp)
-              </button>
-            </div>
-
-            <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden print:border-slate-300 print:shadow-none print:break-inside-avoid">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-8 border-b border-slate-800 pb-3 print:border-slate-300">Business Intelligence</h3>
-
-              <div className="space-y-6">
+              <div className="space-y-5 sm:space-y-6">
 
                 {/* TELEFONE */}
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary/10 rounded-xl text-primary print:bg-slate-100"><Phone className="w-5 h-5" /></div>
-                  <span className="text-sm font-bold print:text-slate-900">{lead.internationalPhoneNumber || 'Não informado'}</span>
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="shrink-0 rounded-xl bg-primary/10 p-3 text-primary print:bg-slate-100"><Phone className="h-5 w-5" /></div>
+                  <span className="break-words pt-1 text-sm font-bold print:text-slate-900">{lead.internationalPhoneNumber || 'Não informado'}</span>
                 </div>
 
                 {/* E-MAILS */}
                 {emails.length > 0 && (
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-primary/10 rounded-xl text-primary print:bg-slate-100"><Mail className="w-5 h-5" /></div>
-                    <div className="space-y-2 w-full">
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="shrink-0 rounded-xl bg-primary/10 p-3 text-primary print:bg-slate-100"><Mail className="h-5 w-5" /></div>
+                    <div className="w-full min-w-0 space-y-2">
                       {emails.map((email, idx) => (
-                        <span key={idx} className="block text-xs font-mono text-blue-300 select-all font-bold border-b border-slate-800 pb-2 last:border-0 print:text-slate-700 print:border-slate-200">{email}</span>
+                        <span key={idx} className="block break-all border-b border-slate-800 pb-2 font-mono text-xs font-bold text-blue-300 last:border-0 print:border-slate-200 print:text-slate-700">{email}</span>
                       ))}
                     </div>
                   </div>
@@ -386,11 +419,11 @@ export default function LeadDetailsPage() {
 
                 {/* NOVO: SITE OFICIAL (Se Existir) */}
                 {lead.websiteUri && (
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-primary/10 rounded-xl text-primary print:bg-slate-100"><Globe className="w-5 h-5" /></div>
-                    <div className="space-y-1 w-full overflow-hidden">
-                      <span className="block text-[10px] text-slate-500 font-black uppercase tracking-widest">Domínio Atual</span>
-                      <a href={lead.websiteUri} target="_blank" rel="noreferrer" className="block text-xs font-mono text-blue-400 hover:text-blue-300 transition-colors truncate font-bold print:text-blue-600">
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="shrink-0 rounded-xl bg-primary/10 p-3 text-primary print:bg-slate-100"><Globe className="h-5 w-5" /></div>
+                    <div className="w-full min-w-0 space-y-1 overflow-hidden">
+                      <span className="block text-[10px] font-black uppercase tracking-widest text-slate-500">Domínio Atual</span>
+                      <a href={lead.websiteUri} target="_blank" rel="noreferrer" className="block truncate font-mono text-xs font-bold text-blue-400 transition-colors hover:text-blue-300 print:text-blue-600">
                         {lead.websiteUri}
                       </a>
                     </div>
@@ -399,16 +432,16 @@ export default function LeadDetailsPage() {
               </div>
 
               {/* LISTAGEM DE REDES SOCIAIS E MARKETPLACES */}
-              <div className="flex justify-center flex-wrap gap-4 mt-10 pt-6 border-t border-slate-800 print:border-slate-300">
+              <div className="mt-8 flex flex-wrap justify-center gap-3 border-t border-slate-800 pt-6 print:border-slate-300 sm:mt-10 sm:gap-4">
                 {socialLinks.length > 0 ? (
                   socialLinks.map((social, i) => (
-                    <a key={i} href={social.url} target="_blank" rel="noreferrer" className="p-4 bg-slate-900 border border-slate-700 rounded-2xl hover:border-primary transition-all flex flex-col items-center gap-2 group print:border-slate-300 print:bg-slate-50">
+                    <a key={i} href={social.url} target="_blank" rel="noreferrer" className="group flex flex-col items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 p-3 transition-all hover:border-primary print:border-slate-300 print:bg-slate-50 sm:p-4">
                       {getSocialIcon(social.network)}
-                      <span className="text-[8px] uppercase font-bold text-slate-500 group-hover:text-white transition-colors print:text-slate-800">{social.network}</span>
+                      <span className="text-[8px] font-bold uppercase text-slate-500 transition-colors group-hover:text-white print:text-slate-800">{social.network}</span>
                     </a>
                   ))
                 ) : (
-                  <span className="text-[10px] text-slate-600 italic print:text-slate-500">Redes Sociais não mapeadas</span>
+                  <span className="text-[10px] italic text-slate-600 print:text-slate-500">Redes Sociais não mapeadas</span>
                 )}
               </div>
             </div>

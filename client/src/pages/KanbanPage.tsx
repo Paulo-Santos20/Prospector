@@ -5,9 +5,9 @@ import {
   type CRMLead,
   type CRMStatus,
 } from '../features/crm/services/crmService';
-import { Star, Send, Handshake, Trophy, MapPin, ArrowLeft, MessageSquare, XCircle } from 'lucide-react';
+import { Star, Send, Handshake, Trophy, MapPin, MessageSquare, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { UserMenu } from '../app/UserMenu';
+import { AppHeader } from '../app/AppHeader';
 
 const COLUMNS: Array<{ id: CRMStatus; title: string; icon: React.ReactNode; border: string }> = [
   { id: 'SAVED', title: 'Leads Salvos', icon: <Star className="w-4 h-4 text-amber-400" />, border: 'border-amber-500/30' },
@@ -51,31 +51,17 @@ export default function KanbanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 font-sans selection:bg-primary selection:text-white">
-      <header className="border-b border-slate-800 bg-surface/80 backdrop-blur-md sticky top-0 z-50 px-4 h-20 flex items-center justify-between">
-        <Link
-          to="/"
-          className="flex items-center text-slate-400 hover:text-white transition-all font-black uppercase text-[10px] tracking-[0.3em] group"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-          Voltar para Mineração
-        </Link>
+    <div className="min-h-screen bg-background font-sans text-slate-100 selection:bg-primary selection:text-white">
+      <AppHeader />
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-primary rounded-md flex items-center justify-center font-bold text-white shadow-lg text-xs">P</div>
-            <span className="text-[10px] font-black tracking-[0.4em] text-slate-500 uppercase italic hidden sm:block">Prospector CRM</span>
-          </div>
-          <UserMenu />
-        </div>
-      </header>
+      <main className="px-3 py-5 sm:px-4 sm:py-8 md:px-8">
+        <div className="mx-auto max-w-[1600px]">
+          <h1 className="mb-2 text-2xl font-black italic uppercase tracking-tighter sm:text-3xl">Meu Funil de Vendas</h1>
+          <p className="mb-6 text-sm font-medium text-slate-400 sm:mb-8">
+            Arraste os cards ou use o seletor para avançar a negociação.
+          </p>
 
-      <main className="p-4 md:p-8">
-        <div className="max-w-[1600px] mx-auto">
-          <h1 className="text-3xl font-black italic uppercase mb-2 tracking-tighter">Meu Funil de Vendas</h1>
-          <p className="text-sm text-slate-400 mb-8 font-medium">Arraste os cards para avançar a negociação.</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-4 scrollbar-hide sm:gap-4 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 xl:grid-cols-6">
             {COLUMNS.map(col => {
               const columnLeads = leads.filter((lead) => lead.status === col.id);
 
@@ -84,39 +70,57 @@ export default function KanbanPage() {
                   key={col.id}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, col.id)}
-                  className={`bg-surface/50 border ${col.border} rounded-3xl p-4 flex flex-col h-[70vh] shadow-xl`}
+                  className={`flex h-[65vh] min-w-[82vw] snap-start flex-col rounded-3xl border bg-surface/50 p-4 shadow-xl sm:min-w-[320px] md:h-[70vh] md:min-w-0 ${col.border}`}
                 >
-                  <div className="flex items-center gap-2 mb-4 pb-4 border-b border-slate-700/50">
+                  <div className="mb-4 flex items-center gap-2 border-b border-slate-700/50 pb-4">
                     {col.icon}
                     <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-300">{col.title}</h2>
-                    <span className="ml-auto text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded-lg">
+                    <span className="ml-auto rounded-lg bg-slate-800 px-2 py-1 text-xs text-slate-400">
                       {columnLeads.length}
                     </span>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto space-y-3 scrollbar-hide pr-1">
+                  <div className="flex-1 space-y-3 overflow-y-auto pr-1 scrollbar-thin">
                     {columnLeads.map((lead: CRMLead) => (
                       <div
                         key={lead.id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, lead.id)}
-                        className="bg-slate-800 border border-slate-700 p-4 rounded-2xl cursor-grab active:cursor-grabbing hover:border-primary transition-all shadow-lg group"
+                        className="group cursor-grab rounded-2xl border border-slate-700 bg-slate-800 p-4 shadow-lg transition-all hover:border-primary active:cursor-grabbing"
                       >
-                        <Link to={`/lead/${lead.leadId}`} className="block">
-                          <h3 className="text-sm font-bold text-white mb-1">
+                        <Link
+                          to={`/lead/${lead.leadId}`}
+                          className="block rounded-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800"
+                        >
+                          <h3 className="mb-1 text-sm font-bold text-white">
                             {lead.snapshot?.displayName?.text || 'Sem nome'}
                           </h3>
-                          <div className="flex items-center text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-3">
-                            <MapPin className="w-3 h-3 mr-1" /> {lead.snapshot?.formattedAddress?.split(',')[0] || ''}
+                          <div className="mb-3 flex items-center text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                            <MapPin className="mr-1 h-3 w-3 shrink-0" /> {lead.snapshot?.formattedAddress?.split(',')[0] || ''}
                           </div>
                         </Link>
                         {lead.notes && (
-                          <p className="text-xs text-slate-300 italic border-l-2 border-primary pl-2 mb-2 line-clamp-2">
+                          <p className="mb-2 line-clamp-2 border-l-2 border-primary pl-2 text-xs italic text-slate-300">
                             "{lead.notes}"
                           </p>
                         )}
+                        <select
+                          value={lead.status}
+                          onChange={(e) => updateStatusMutation.mutate({ id: lead.id, status: e.target.value as CRMStatus })}
+                          aria-label={`Mover ${lead.snapshot?.displayName?.text || 'lead'} para outra etapa`}
+                          className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-900 px-2 py-2 text-[11px] font-bold text-slate-300 outline-none focus:ring-2 focus:ring-primary lg:hidden"
+                        >
+                          {COLUMNS.map((option) => (
+                            <option key={option.id} value={option.id}>{option.title}</option>
+                          ))}
+                        </select>
                       </div>
                     ))}
+                    {columnLeads.length === 0 && (
+                      <p className="rounded-xl border border-dashed border-slate-700 p-4 text-center text-[11px] text-slate-500">
+                        Nenhum lead
+                      </p>
+                    )}
                   </div>
                 </div>
               );

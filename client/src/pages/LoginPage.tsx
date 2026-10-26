@@ -50,21 +50,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 flex items-center justify-center px-4">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-background px-4 py-8 text-slate-100">
       <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center font-black text-white shadow-lg">
+        <div className="mb-6 flex items-center justify-center gap-3 sm:mb-8">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary font-black text-white shadow-lg">
             P
           </div>
-          <div>
-            <h1 className="text-2xl font-black italic uppercase tracking-tighter">Prospector AI</h1>
-            <p className="text-[10px] text-slate-500 uppercase tracking-[0.25em] font-bold">
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-black italic uppercase tracking-tighter sm:text-2xl">Prospector AI</h1>
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 sm:text-[10px] sm:tracking-[0.25em]">
               Inteligência de prospecção
             </p>
           </div>
         </div>
 
-        <div className="bg-surface border border-slate-700 rounded-[2rem] p-8 shadow-2xl">
+        <div className="rounded-3xl border border-slate-700 bg-surface p-5 shadow-2xl sm:rounded-[2rem] sm:p-8">
           {!configured ? (
             <div className="space-y-3 text-sm text-slate-300">
               <h2 className="text-lg font-black text-white">Configure o Firebase</h2>
@@ -72,7 +72,7 @@ export default function LoginPage() {
                 Crie <code className="text-primary">client/.env</code> a partir de{' '}
                 <code className="text-primary">client/.env.example</code> com as chaves do app web:
               </p>
-              <pre className="bg-background border border-slate-700 rounded-xl p-4 text-[11px] text-slate-400 overflow-auto">
+              <pre className="overflow-x-auto rounded-xl border border-slate-700 bg-background p-4 text-[10px] text-slate-400 sm:text-[11px]">
 {`VITE_FIREBASE_API_KEY=...
 VITE_FIREBASE_AUTH_DOMAIN=...
 VITE_FIREBASE_PROJECT_ID=...
@@ -100,9 +100,11 @@ VITE_FIREBASE_APP_ID=...`}
                       type="email"
                       required
                       autoComplete="email"
+                      autoCapitalize="none"
+                      spellCheck={false}
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
-                      className="w-full bg-background border border-slate-600 rounded-xl py-3 pl-11 pr-4 outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full rounded-xl border border-slate-600 bg-background py-3 pl-11 pr-4 outline-none transition focus:ring-2 focus:ring-primary"
                       placeholder="voce@agencia.com"
                     />
                   </div>
@@ -121,27 +123,39 @@ VITE_FIREBASE_APP_ID=...`}
                       autoComplete="current-password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
-                      className="w-full bg-background border border-slate-600 rounded-xl py-3 pl-11 pr-4 outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full rounded-xl border border-slate-600 bg-background py-3 pl-11 pr-4 outline-none transition focus:ring-2 focus:ring-primary"
                       placeholder="Mínimo de 6 caracteres"
                     />
                   </div>
                 </label>
 
-                {error && <p className="text-xs text-red-400">{error}</p>}
-                {message && <p className="text-xs text-emerald-400">{message}</p>}
+                {error && (
+                  <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                    {error}
+                  </p>
+                )}
+                {message && (
+                  <p aria-live="polite" className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                    {message}
+                  </p>
+                )}
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-primary hover:bg-blue-600 disabled:opacity-50 text-white font-black py-3 rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-tight"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-black uppercase tracking-tight text-white transition-all hover:bg-blue-600 disabled:opacity-50"
                 >
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   Entrar
                 </button>
               </form>
 
-              <div className="flex items-center justify-end mt-5 text-[11px] font-bold">
-                <button onClick={() => void handleReset()} className="text-slate-500 hover:text-slate-300">
+              <div className="mt-5 flex items-center justify-end text-[11px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => void handleReset()}
+                  className="rounded-lg px-2 py-2 text-slate-400 transition-colors hover:text-slate-200"
+                >
                   Esqueci a senha
                 </button>
               </div>

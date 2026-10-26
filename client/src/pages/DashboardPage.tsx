@@ -1,9 +1,9 @@
 import { useState, useMemo, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Loader2, Sparkles, AlertCircle, 
-  Globe, ShieldAlert, Users, Send, Target, Layout
+  Globe, ShieldAlert, Users, Send, Target
 } from 'lucide-react';
 
 import {
@@ -13,7 +13,7 @@ import {
 } from '../features/search/services/searchService';
 import { useLeadSearch } from '../features/search/hooks/useLeadSearch';
 import { LeadCard } from '../features/leads/components/LeadCard';
-import { UserMenu } from '../app/UserMenu';
+import { AppHeader } from '../app/AppHeader';
 import { api } from '../lib/axios';
 
 interface GlobalStats {
@@ -84,43 +84,27 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-slate-100 pb-20">
-      <header className="border-b border-slate-800 bg-surface/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center font-bold text-white shadow-lg">P</div>
-            <span className="font-bold text-xl tracking-tight">Prospector AI</span>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <Link to="/no-website" className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-xs font-bold px-4 py-2 rounded-xl transition-all border border-red-500/30 hover:border-red-500">
-              <AlertCircle className="w-4 h-4" /> Sem Site
-            </Link>
-            <Link to="/crm" className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all border border-slate-700 hover:border-primary shadow-lg">
-              <Layout className="w-4 h-4 text-primary" /> Meu CRM
-            </Link>
-            <UserMenu />
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background pb-20 text-slate-100">
+      <AppHeader />
 
-      <main className="max-w-7xl mx-auto px-4 mt-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <main className="mx-auto mt-5 max-w-7xl px-3 sm:mt-8 sm:px-4">
+        <div className="mb-6 grid grid-cols-1 gap-3 sm:mb-8 sm:grid-cols-3 sm:gap-6">
           <StatCard icon={<Users />} label="Leads no CRM" value={stats?.totalLeads || 0} color="text-blue-400" />
           <StatCard icon={<Send />} label="Propostas Enviadas" value={stats?.totalProposals || 0} color="text-emerald-400" />
           <StatCard icon={<Target />} label="Taxa de Fechamento" value={`${stats?.rate || 0}%`} color="text-amber-400" />
         </div>
 
-        <div className="bg-surface border border-slate-700 rounded-[2.5rem] p-8 shadow-2xl mb-10 relative overflow-hidden">
-           <h1 className="text-2xl font-black mb-6 flex items-center gap-2 italic uppercase">
-             <Sparkles className="w-5 h-5 text-amber-400" /> Inteligência de Mineração
+        <div className="relative mb-6 overflow-hidden rounded-3xl border border-slate-700 bg-surface p-4 shadow-2xl sm:mb-10 sm:rounded-[2.5rem] sm:p-6 lg:p-8">
+           <h1 className="mb-4 flex items-center gap-2 text-xl font-black italic uppercase sm:mb-6 sm:text-2xl">
+             <Sparkles className="h-4 w-4 shrink-0 text-amber-400 sm:h-5 sm:w-5" /> Inteligência de Mineração
            </h1>
-           <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 relative z-10 items-center">
-               <div className="flex items-center gap-2">
+           <form onSubmit={handleSearch} className="relative z-10 flex flex-col items-stretch gap-3 md:flex-row md:items-center md:gap-4">
+               <div className="flex w-full items-center gap-2 md:w-auto">
                  <select 
                    value={provider} 
                    onChange={(e) => setProvider(e.target.value)}
-                   className="bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition text-sm"
+                   aria-label="Provedor de busca"
+                   className="w-full rounded-2xl border border-slate-600 bg-background px-4 py-3.5 text-base outline-none transition focus:ring-2 focus:ring-primary sm:px-6 sm:py-4 md:w-auto md:text-sm"
                  >
                    <option
                      value="geoapify"
@@ -144,7 +128,8 @@ export default function DashboardPage() {
                    <option value="google" disabled>Google Places (Billing)</option>
                  </select>
                  <span
-                   className={`w-2.5 h-2.5 rounded-full ${
+                   title="Status do provedor"
+                   className={`h-2.5 w-2.5 shrink-0 rounded-full ${
                      providerStatus?.providers?.[provider]?.configured !== false &&
                      providerStatus?.providers?.[provider]?.available !== false
                        ? 'bg-emerald-400'
@@ -153,38 +138,50 @@ export default function DashboardPage() {
                  />
                </div>
                <input 
-                type="text" placeholder="Nicho (ex: Clínicas de Estética)" value={nicheInput}
+                type="text"
+                aria-label="Nicho"
+                placeholder="Nicho (ex: Clínicas de Estética)"
+                value={nicheInput}
                 onChange={(e) => setNicheInput(e.target.value)}
-                className="flex-1 bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition"
+                className="w-full min-w-0 flex-1 rounded-2xl border border-slate-600 bg-background px-4 py-3.5 text-base outline-none transition focus:ring-2 focus:ring-primary sm:px-6 sm:py-4"
               />
               <input 
-                type="text" placeholder="Localização (ex: Recife)" value={locationInput}
+                type="text"
+                aria-label="Localização"
+                placeholder="Localização (ex: Recife)"
+                value={locationInput}
                 onChange={(e) => setLocationInput(e.target.value)}
-                className="flex-1 bg-background border border-slate-600 rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-primary transition"
+                className="w-full min-w-0 flex-1 rounded-2xl border border-slate-600 bg-background px-4 py-3.5 text-base outline-none transition focus:ring-2 focus:ring-primary sm:px-6 sm:py-4"
               />
-              <button disabled={isFetching} type="submit" className="bg-primary hover:bg-blue-600 text-white font-black py-4 px-10 rounded-2xl transition disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-tighter italic">
+              <button
+                disabled={isFetching}
+                type="submit"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 font-black italic uppercase tracking-tighter text-white transition hover:bg-blue-600 disabled:opacity-50 sm:py-4 md:w-auto md:px-10"
+              >
                 {isFetching ? <Loader2 className="animate-spin" /> : 'Prospectar IA'}
               </button>
            </form>
-           <p className="mt-3 text-[10px] text-slate-500 font-medium">
+           <p className="mt-3 text-[10px] font-medium text-slate-500">
              {providerAttribution(provider)}
            </p>
         </div>
 
         {isError && (
-          <div className="mb-8 flex items-start gap-3 bg-red-500/10 border border-red-500/30 text-red-300 rounded-2xl p-5 text-sm">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <div className="flex-1">
-              <p>{error instanceof Error ? error.message : 'Não foi possível buscar leads.'}</p>
-              {totalLeads > 0 && (
-                <p className="mt-1 text-xs text-red-400">
-                  {analyzedLeads} de {totalLeads} leads analisados. Resultados parciais mantidos.
-                </p>
-              )}
+          <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300 sm:mb-8 sm:flex-row sm:items-start sm:p-5">
+            <div className="flex flex-1 items-start gap-3">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <div className="flex-1">
+                <p>{error instanceof Error ? error.message : 'Não foi possível buscar leads.'}</p>
+                {totalLeads > 0 && (
+                  <p className="mt-1 text-xs text-red-400">
+                    {analyzedLeads} de {totalLeads} leads analisados. Resultados parciais mantidos.
+                  </p>
+                )}
+              </div>
             </div>
             <button
               onClick={() => refetch()}
-              className="shrink-0 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase"
+              className="shrink-0 rounded-xl bg-red-600 px-4 py-2.5 text-[10px] font-black uppercase text-white hover:bg-red-700 sm:py-2"
             >
               {totalLeads > 0 ? 'Continuar' : 'Tentar novamente'}
             </button>
@@ -192,7 +189,7 @@ export default function DashboardPage() {
         )}
 
         {isFetching && totalLeads > 0 && (
-          <div className="mb-8 bg-surface border border-slate-700 rounded-2xl p-5">
+          <div className="mb-6 rounded-2xl border border-slate-700 bg-surface p-4 sm:mb-8 sm:p-5">
             <div className="flex items-center justify-between mb-2 text-[10px] font-black uppercase tracking-widest">
               <span className="text-slate-400 flex items-center gap-2">
                 <Loader2 className="w-3 h-3 animate-spin text-primary" /> Analisando com IA
@@ -209,16 +206,36 @@ export default function DashboardPage() {
         )}
 
         {data?.leads && (
-          <div className="flex flex-wrap gap-3 mb-8">
+          <div className="mb-6 flex flex-wrap gap-2 sm:mb-8 sm:gap-3">
             <FilterButton active={activeFilter === 'all'} onClick={() => setActiveFilter('all')} icon={<Globe />} label="Todos" count={data.leads.length} />
             <FilterButton active={activeFilter === 'no_website'} onClick={() => setActiveFilter('no_website')} icon={<AlertCircle />} label="Sem Site" variant="danger" count={data.leads.filter(l => l.analysis?.status === 'NO_WEBSITE' || !l.websiteUri).length} />
             <FilterButton active={activeFilter === 'insecure'} onClick={() => setActiveFilter('insecure')} icon={<ShieldAlert />} label="Inseguros" variant="warning" count={data.leads.filter(l => l.analysis?.status !== 'NO_WEBSITE' && l.websiteUri && l.analysis?.isSecure === false).length} />
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
           {filteredLeads.map(lead => <LeadCard key={lead.id} lead={lead} />)}
         </div>
+
+        {!isFetching && !isError && nicheParam && data?.leads && filteredLeads.length === 0 && (
+          <div className="py-16 text-center text-slate-400">
+            <AlertCircle className="mx-auto mb-4 h-10 w-10 text-slate-600" />
+            <p className="text-sm">
+              {data.leads.length === 0
+                ? 'Nenhum lead encontrado para esta busca.'
+                : 'Nenhum lead corresponde ao filtro selecionado.'}
+            </p>
+            {data.leads.length > 0 && activeFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setActiveFilter('all')}
+                className="mt-4 rounded-xl border border-slate-700 bg-surface px-4 py-2 text-xs font-bold text-slate-300 transition hover:border-primary hover:text-white"
+              >
+                Limpar filtro
+              </button>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
@@ -226,12 +243,12 @@ export default function DashboardPage() {
 
 function StatCard({ icon, label, value, color }: { icon: ReactNode; label: string; value: number | string; color: string }) {
   return (
-    <div className="bg-surface border border-slate-800 p-8 rounded-[2rem] shadow-xl relative group overflow-hidden">
+    <div className="group relative overflow-hidden rounded-3xl border border-slate-800 bg-surface p-5 shadow-xl sm:rounded-[2rem] sm:p-8">
       <div className={`absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-all group-hover:scale-110 ${color}`}>
         {icon && <div className="scale-[4]">{icon}</div>}
       </div>
-      <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">{label}</p>
-      <p className={`text-4xl font-black italic tracking-tighter ${color}`}>{value}</p>
+      <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{label}</p>
+      <p className={`text-3xl font-black italic tracking-tighter sm:text-4xl ${color}`}>{value}</p>
     </div>
   );
 }
@@ -252,8 +269,13 @@ function FilterButton({ active, onClick, icon, label, count, variant = 'primary'
     warning: active ? "bg-amber-600 text-white" : "bg-surface text-slate-400 hover:border-amber-500/50",
   };
   return (
-    <button onClick={onClick} className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[11px] font-black uppercase transition-all border border-slate-700 ${styles[variant]}`}>
-      {icon} {label} <span className="opacity-40 ml-2">{count}</span>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex items-center gap-2 rounded-xl border border-slate-700 px-3 py-2.5 text-[10px] font-black uppercase transition-all sm:px-6 sm:py-3 sm:text-[11px] ${styles[variant]}`}
+    >
+      {icon} {label} <span className="ml-1 opacity-40 sm:ml-2">{count}</span>
     </button>
   );
 }
